@@ -58,25 +58,37 @@ While PHP supports *anonymous class types*, such a type cannot be declared using
 
 **Syntax**
 
+<!-- GRAMMAR
+class-declaration:
+  class-modifier? 'class' name class-base-clause? class-interface-clause? '{' class-member-declarations? '}'
+
+class-modifier:
+  'abstract'
+  'final'
+
+class-base-clause:
+  'extends' qualified-name
+
+class-interface-clause:
+  'implements' qualified-name
+  class-interface-clause ',' qualified-name
+-->
+
 <pre>
-  <i>class-declaration:</i>
-    <i>class-modifier<sub>opt</sub></i>  class  <i>name   class-base-clause<sub>opt</sub>  class-interface-clause<sub>opt</sub></i>   {   class-member-declarations<sub>opt</sub></i> }
+<i id="grammar-class-declaration">class-declaration:</i>
+   <i><a href="#grammar-class-modifier">class-modifier</a></i><sub>opt</sub>   class   <i><a href="09-lexical-structure.md#grammar-name">name</a></i>   <i><a href="#grammar-class-base-clause">class-base-clause</a></i><sub>opt</sub>   <i><a href="#grammar-class-interface-clause">class-interface-clause</a></i><sub>opt</sub>   {   <i><a href="#grammar-class-member-declarations">class-member-declarations</a></i><sub>opt</sub>   }
 
-  <i>class-modifier:</i>
-    abstract
-    final
+<i id="grammar-class-modifier">class-modifier:</i>
+   abstract
+   final
 
-  <i>class-base-clause:</i>
-    extends  <i>qualified-name</i>
+<i id="grammar-class-base-clause">class-base-clause:</i>
+   extends   <i><a href="09-lexical-structure.md#grammar-qualified-name">qualified-name</a></i>
 
-  <i>class-interface-clause:</i>
-    implements  <i>qualified-name</i>
-    <i>class-interface-clause</i>  ,  <i>qualified-name</i>
+<i id="grammar-class-interface-clause">class-interface-clause:</i>
+   implements   <i><a href="09-lexical-structure.md#grammar-qualified-name">qualified-name</a></i>
+   <i><a href="#grammar-class-interface-clause">class-interface-clause</a></i>   ,   <i><a href="09-lexical-structure.md#grammar-qualified-name">qualified-name</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*class-member-declarations*](#class-members)
 
 **Constraints**
 
@@ -197,28 +209,33 @@ class MyList implements MyCollection
 
 **Syntax**
 
+<!-- GRAMMAR
+class-member-declarations:
+  class-member-declaration
+  class-member-declarations class-member-declaration
+
+class-member-declaration:
+  class-const-declaration
+  property-declaration
+  method-declaration
+  constructor-declaration
+  destructor-declaration
+  trait-use-clause
+-->
+
 <pre>
-  <i>class-member-declarations:</i>
-    <i>class-member-declaration</i>
-    <i>class-member-declarations   class-member-declaration</i>
+<i id="grammar-class-member-declarations">class-member-declarations:</i>
+   <i><a href="#grammar-class-member-declaration">class-member-declaration</a></i>
+   <i><a href="#grammar-class-member-declarations">class-member-declarations</a></i>   <i><a href="#grammar-class-member-declaration">class-member-declaration</a></i>
 
-   <i>class-member-declaration:</i>
-     <i>class-const-declaration</i>
-     <i>property-declaration</i>
-     <i>method-declaration</i>
-     <i>constructor-declaration</i>
-     <i>destructor-declaration</i>
-     <i>trait-use-clause</i>
+<i id="grammar-class-member-declaration">class-member-declaration:</i>
+   <i><a href="#grammar-class-const-declaration">class-const-declaration</a></i>
+   <i><a href="#grammar-property-declaration">property-declaration</a></i>
+   <i><a href="#grammar-method-declaration">method-declaration</a></i>
+   <i><a href="#grammar-constructor-declaration">constructor-declaration</a></i>
+   <i><a href="#grammar-destructor-declaration">destructor-declaration</a></i>
+   <i><a href="16-traits.md#grammar-trait-use-clause">trait-use-clause</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*class-const-declaration*](#constants)
-* [*property-declaration*](#properties)
-* [*method-declaration*](#methods)
-* [*constructor-declaration*](#constructors)
-* [*destructor-declaration*](#destructors)
-* [*trait-use-clause*](16-traits.md#trait-uses)
 
 **Semantics**
 
@@ -248,14 +265,16 @@ Methods and properties can either be *static* or *instance* members. A
 static member is declared using `static`. An instance member is one that
 is not static. The name of a static or instance member can never be used
 on its own; it must always be used as the right-hand operand of the
-[scope resolution operator](10-expressions.md#scope-resolution-operator) or the [member selection operator](10-expressions.md#member-selection-operator).
+[scope resolution operator](10-expressions.md#scope-resolution-operator)
+or the [member access operator](10-expressions.md#member-access-operator).
 
 Each instance of a class contains its own, unique set of instance
 properties of that class. An instance member is accessed via the
-[`->` operator](10-expressions.md#member-selection-operator). In contrast, a static property designates
-exactly one VSlot for its class, which does not belong to any instance,
-per se. A static property exists whether or not any instances of that
-class exist. A static member is accessed via the [`::` operator](10-expressions.md#scope-resolution-operator).
+[`->` operator](10-expressions.md#member-access-operator). In contrast,
+a static property designates exactly one VSlot for its class, which does
+not belong to any instance, per se. A static property exists whether or
+not any instances of that class exist. A static member is accessed via
+the [`::` operator](10-expressions.md#scope-resolution-operator).
 
 When any instance method operates on a given instance of a class, within
 that method that object can be accessed via [`$this`](10-expressions.md#general-1). As a
@@ -384,26 +403,35 @@ Widget::__callStatic('sMethod', array(NULL, 1.234))
 
 **Syntax**
 
+<!-- GRAMMAR
+const-declaration:
+  'const' const-elements ';'
+
+class-const-declaration:
+  visibility-modifier? 'const' const-elements ';'
+
+const-elements:
+  const-element
+  const-elements const-element
+
+const-element:
+  name '=' constant-expression
+-->
+
 <pre>
-  <i>const-declaration:</i>
-    const   <i>const-elements</i>   ;
+<i id="grammar-const-declaration">const-declaration:</i>
+   const   <i><a href="#grammar-const-elements">const-elements</a></i>   ;
 
-  <i>class-const-declaration:</i>
-    <i>visibility-modifier<sub>opt</sub></i>   const   <i>const-elements</i>   ;
+<i id="grammar-class-const-declaration">class-const-declaration:</i>
+   <i><a href="#grammar-visibility-modifier">visibility-modifier</a></i><sub>opt</sub>   const   <i><a href="#grammar-const-elements">const-elements</a></i>   ;
 
-  <i>const-elements:</i>
-    <i>const-element</i>
-    <i>const-elements   const-element</i>
+<i id="grammar-const-elements">const-elements:</i>
+   <i><a href="#grammar-const-element">const-element</a></i>
+   <i><a href="#grammar-const-elements">const-elements</a></i>   <i><a href="#grammar-const-element">const-element</a></i>
 
-  <i>const-element:</i>
-    <i>name</i>   =   <i>constant-expression</i>
+<i id="grammar-const-element">const-element:</i>
+   <i><a href="09-lexical-structure.md#grammar-name">name</a></i>   =   <i><a href="10-expressions.md#grammar-constant-expression">constant-expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*name*](09-lexical-structure.md#names)
-* [*constant-expression*](10-expressions.md#constant-expressions)
-* [*visibility-modifier*](#properties)
 
 **Constraints:**
 
@@ -445,38 +473,61 @@ $col = Automobile::DEFAULT_COLOR;
 
 **Syntax**
 
+<!-- GRAMMAR
+property-declaration:
+  property-modifier property-elements ';'
+
+property-modifier:
+  'var'
+  visibility-modifier static-modifier?
+  static-modifier visibility-modifier?
+
+visibility-modifier:
+  'public'
+  'protected'
+  'private'
+
+static-modifier:
+  'static'
+
+property-elements:
+  property-element
+  property-elements property-element
+
+property-element:
+  variable-name property-initializer? ';'
+
+property-initializer:
+  '=' constant-expression
+-->
+
 <pre>
-  <i>property-declaration:</i>
-    <i>property-modifier   property-elements</i>   ;
+<i id="grammar-property-declaration">property-declaration:</i>
+   <i><a href="#grammar-property-modifier">property-modifier</a></i>   <i><a href="#grammar-property-elements">property-elements</a></i>   ;
 
-  <i>property-modifier:</i>
-    var
-    <i>visibility-modifier   static-modifier<sub>opt</sub></i>
-    <i>static-modifier   visibility-modifier<sub>opt</sub></i>
+<i id="grammar-property-modifier">property-modifier:</i>
+   var
+   <i><a href="#grammar-visibility-modifier">visibility-modifier</a></i>   <i><a href="#grammar-static-modifier">static-modifier</a></i><sub>opt</sub>
+   <i><a href="#grammar-static-modifier">static-modifier</a></i>   <i><a href="#grammar-visibility-modifier">visibility-modifier</a></i><sub>opt</sub>
 
-  <i>visibility-modifier:</i>
-    public
-    protected
-    private
+<i id="grammar-visibility-modifier">visibility-modifier:</i>
+   public
+   protected
+   private
 
-  <i>static-modifier:</i>
-    static
+<i id="grammar-static-modifier">static-modifier:</i>
+   static
 
-  <i>property-elements:</i>
-    <i>property-element</i>
-    <i>property-elements   property-element</i>
+<i id="grammar-property-elements">property-elements:</i>
+   <i><a href="#grammar-property-element">property-element</a></i>
+   <i><a href="#grammar-property-elements">property-elements</a></i>   <i><a href="#grammar-property-element">property-element</a></i>
 
-  <i>property-element:</i>
-    <i>variable-name   property-initializer<sub>opt</sub></i>   ;
+<i id="grammar-property-element">property-element:</i>
+   <i><a href="09-lexical-structure.md#grammar-variable-name">variable-name</a></i>   <i><a href="#grammar-property-initializer">property-initializer</a></i><sub>opt</sub>   ;
 
-  <i>property-initializer:</i>
-    =  <i>constant-expression</i>
+<i id="grammar-property-initializer">property-initializer:</i>
+   =   <i><a href="10-expressions.md#grammar-constant-expression">constant-expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*variable-name*](09-lexical-structure.md#names)
-* [*constant-expression*](10-expressions.md#constant-expressions)
 
 **Semantics**
 
@@ -509,27 +560,35 @@ class Point
 
 **Syntax**
 
+<!-- GRAMMAR
+method-declaration:
+  method-modifiers? function-definition
+  method-modifiers function-definition-header ';'
+
+method-modifiers:
+  method-modifier
+  method-modifiers method-modifier
+
+method-modifier:
+  visibility-modifier
+  static-modifier
+  class-modifier
+-->
+
 <pre>
-  <i>method-declaration:</i>
-    <i>method-modifiers<sub>opt</sub>   function-definition</i>
-    <i>method-modifiers   function-definition-header</i>  ;
+<i id="grammar-method-declaration">method-declaration:</i>
+   <i><a href="#grammar-method-modifiers">method-modifiers</a></i><sub>opt</sub>   <i><a href="13-functions.md#grammar-function-definition">function-definition</a></i>
+   <i><a href="#grammar-method-modifiers">method-modifiers</a></i>   <i><a href="13-functions.md#grammar-function-definition-header">function-definition-header</a></i>   ;
 
-  <i>method-modifiers:</i>
-    <i>method-modifier</i>
-    <i>method-modifiers   method-modifier</i>
+<i id="grammar-method-modifiers">method-modifiers:</i>
+   <i><a href="#grammar-method-modifier">method-modifier</a></i>
+   <i><a href="#grammar-method-modifiers">method-modifiers</a></i>   <i><a href="#grammar-method-modifier">method-modifier</a></i>
 
-  <i>method-modifier:</i>
-    <i>visibility-modifier</i>
-    <i>static-modifier</i>
-    <i>class-modifier</i>
+<i id="grammar-method-modifier">method-modifier:</i>
+   <i><a href="#grammar-visibility-modifier">visibility-modifier</a></i>
+   <i><a href="#grammar-static-modifier">static-modifier</a></i>
+   <i><a href="#grammar-class-modifier">class-modifier</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*visibility-modifier*](#properties)
-* [*static-modifier*](#properties)
-* [*function-definition*](13-functions.md#function-definitions)
-* [*function-definition-header*](13-functions.md#function-definitions)
 
 **Constraints**
 
@@ -567,17 +626,15 @@ examples of abstract methods and their subsequent definitions.
 
 **Syntax**
 
+<!-- GRAMMAR
+constructor-declaration:
+  method-modifiers 'function' '&'? '__construct' '(' parameter-declaration-list? ')' compound-statement
+-->
+
 <pre>
-  <i>constructor-declaration:</i>
-    <i>method-modifiers</i>  function &<sub>opt</sub>   __construct  (  <i>parameter-declaration-list<sub>opt</sub></i>  )  <i>compound-statement</i>
-
+<i id="grammar-constructor-declaration">constructor-declaration:</i>
+   <i><a href="#grammar-method-modifiers">method-modifiers</a></i>   function   &amp;<sub>opt</sub>   __construct   (   <i><a href="13-functions.md#grammar-parameter-declaration-list">parameter-declaration-list</a></i><sub>opt</sub>   )   <i><a href="11-statements.md#grammar-compound-statement">compound-statement</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*method-modifiers*](#methods)
-* [*parameter-declaration-list*](13-functions.md#function-definitions)
-* [*compound-statement*](11-statements.md#compound-statements)
 
 **Constraints**
 
@@ -655,15 +712,15 @@ class MyRangeException extends Exception
 
 **Syntax**
 
+<!-- GRAMMAR
+destructor-declaration:
+  method-modifiers 'function' '&'? '__destruct' '(' ')' compound-statement
+-->
+
 <pre>
-  <i>destructor-declaration:</i>
-    <i>method-modifiers</i>  function  &<sub>opt</sub>  __destruct  ( ) <i>compound-statement</i>
+<i id="grammar-destructor-declaration">destructor-declaration:</i>
+   <i><a href="#grammar-method-modifiers">method-modifiers</a></i>   function   &amp;<sub>opt</sub>   __destruct   (   )   <i><a href="11-statements.md#grammar-compound-statement">compound-statement</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*method-modifiers*](#methods)
-* [*compound-statement*](11-statements.md#compound-statements)
 
 **Constraints**
 
@@ -752,13 +809,6 @@ an overriding concrete class must declare one. Nevertheless, the constraints on 
   <i>method-modifiers</i> function  __call  (  <i>$name</i>  ,  <i>$arguments</i>  )  <i>return-type<sub>opt</sub></i>  <i>compound-statement</i>
 </pre>
 
-**Defined elsewhere**
-
-* [*compound-statement*](11-statements.md#compound-statements)
-* [*method-modifiers*](#methods)
-* [*return-type*](13-functions.md#function-definitions)
-* [*return-type*](13-functions.md#function-definitions)
-
 **Constraints**
 
 The method can not be static and must have public visibility.
@@ -772,7 +822,8 @@ designated by `$name` using the arguments specified by the elements of
 the array designated by `$arguments`. It can return any value deemed
 appropriate.
 
-Typically, `__call` is called implicitly, when the [`->` operator](10-expressions.md#member-selection-operator)
+Typically, `__call` is called implicitly, when the
+[`->` operator](10-expressions.md#member-call-operator)
 is used to call an instance method that is not visible.
 
 While `__call` can be called explicitly, the two scenarios do not
@@ -814,13 +865,6 @@ $obj->iMethod(10, TRUE, "abc"); // $obj->__call('iMethod', array(...))
 <pre>
   <i>method-modifiers</i>  function  __callStatic  (  <i>$name</i>  ,  <i>$arguments</i>  )  <i>return-type<sub>opt</sub></i>  <i>compound-statement</i>
 </pre>
-
-**Defined elsewhere**
-
-* [*compound-statement*](11-statements.md#compound-statements)
-* [*method-modifiers*](#methods)
-* [*return-type*](13-functions.md#function-definitions)
-* [*return-type*](13-functions.md#function-definitions)
 
 **Constraints**
 
@@ -877,11 +921,6 @@ Widget::sMethod(NULL, 1.234); // Widget::__callStatic('sMethod', array(...))
 <pre>
   <i>method-modifiers</i>  function  __clone  (  )  <i>compound-statement</i>
 </pre>
-
-**Defined elsewhere**
-
-* [*compound-statement*](11-statements.md#compound-statements)
-* [*method-modifiers*](#methods)
 
 **Constraints**
 
@@ -968,11 +1007,6 @@ $p2 = clone $p1;  // created by cloning
   <i>method-modifiers</i> function  __debugInfo  (  )   <i>compound-statement</i>
 </pre>
 
-**Defined elsewhere**
-
-* [*compound-statement*](11-statements.md#compound-statements)
-* [*method-modifiers*](#methods)
-
 **Constraints**
 
 The *method-modifiers* must not contain `static` and must define public visibility.
@@ -1022,13 +1056,6 @@ object(File)#1 {
   <i>method-modifiers</i> function  &<sub>opt</sub>  __get  (  <i>$name</i>  )  <i>return-type<sub>opt</sub></i>  <i>compound-statement</i>
 </pre>
 
-**Defined elsewhere**
-
-* [*compound-statement*](11-statements.md#compound-statements)
-* [*method-modifiers*](#methods)
-* [*return-type*](13-functions.md#function-definitions)
-* [*return-type*](13-functions.md#function-definitions)
-
 **Constraints**
 
 The *method-modifiers* must not contain `static` and must define public visibility.
@@ -1038,7 +1065,8 @@ The *method-modifiers* must not contain `static` and must define public visibili
 This instance method gets the value of the [dynamic property](#dynamic-members)
 designated by `$name`. It is up to the implementor to define the return value.
 
-Typically, `__get` is called implicitly, when the [`->` operator](10-expressions.md#member-selection-operator)
+Typically, `__get` is called implicitly, when the
+[`->` operator](10-expressions.md#member-access-operator)
 is used in a non-lvalue context and the named property is not visible.
 
 While `__get` can be called explicitly, the two scenarios do not
@@ -1120,13 +1148,6 @@ restrictions on the spelling of the dynamic property name designated by
   <i>method-modifiers</i>  function  __invoke  ( <i>parameter-declaration-list<sub>opt</sub></i>  )  <i>return-type<sub>opt</sub></i>  <i>compound-statement</i>
 </pre>
 
-**Defined elsewhere**
-
-* [*parameter-declaration-list*](13-functions.md#function-definitions)
-* [*compound-statement*](11-statements.md#compound-statements)
-* [*method-modifiers*](#methods)
-* [*return-type*](13-functions.md#function-definitions)
-
 **Constraints**
 
 The *method-modifiers* must not contain `static` and must define public visibility.
@@ -1165,12 +1186,6 @@ $r = $c(123);   // becomes $r = $c->__invoke(123);
 <pre>
   <i>method-modifiers</i>  function  __isset  (  <i>$name</i>  )  <i>return-type<sub>opt</sub></i>  <i>compound-statement</i>
 </pre>
-
-**Defined elsewhere**
-
-* [*compound-statement*](11-statements.md#compound-statements)
-* [*method-modifiers*](#methods)
-* [*return-type*](13-functions.md#function-definitions)
 
 **Constraints**
 
@@ -1229,12 +1244,6 @@ See the Implementation Notes for [`__get`](#method-__get).
   <i>method-modifiers</i>  function  __set  (  <i>$name</i>  ,  <i>$value</i>  )  <i>return-type<sub>opt</sub></i>  <i>compound-statement</i>
 </pre>
 
-**Defined elsewhere**
-
-* [*compound-statement*](11-statements.md#compound-statements)
-* [*method-modifiers*](#methods)
-* [*return-type*](13-functions.md#function-definitions)
-
 **Constraints**
 
 The *method-modifiers* must not contain `static` and must define public visibility.
@@ -1244,7 +1253,8 @@ The *method-modifiers* must not contain `static` and must define public visibili
 This instance method sets the value of the [dynamic property](#dynamic-members)
 designated by `$name` to `$value`. No value is expected to be returned.
 
-Typically, `__set` is called implicitly, when the [`->` operator](10-expressions.md#member-selection-operator)
+Typically, `__set` is called implicitly, when the
+[`->` operator](10-expressions.md#member-access-operator)
 is used in a modifiable lvalue context and the named property is not
 visible.
 
@@ -1300,12 +1310,6 @@ See the Implementation Notes for [`__get`](#method-__get).
 <pre>
   <i>method-modifiers</i>  function  __set_state  ( array  <i>$properties</i>  )  <i>return-type<sub>opt</sub></i>  <i>compound-statement</i>
 </pre>
-
-**Defined elsewhere**
-
-* [*compound-statement*](11-statements.md#compound-statements)
-* [*method-modifiers*](#methods)
-* [*return-type*](13-functions.md#function-definitions)
 
 **Constraints**
 
@@ -1423,12 +1427,6 @@ var_dump($z);
   <i>method-modifiers</i>  function  __sleep  ( )  <i>return-type<sub>opt</sub></i>  <i>compound-statement</i>
 </pre>
 
-**Defined elsewhere**
-
-* [*compound-statement*](11-statements.md#compound-statements)
-* [*method-modifiers*](#methods)
-* [*return-type*](13-functions.md#function-definitions)
-
 **Constraints**
 
 The *method-modifiers* must not contain `static` and must define public visibility.
@@ -1507,12 +1505,6 @@ $v = unserialize($s); // unserialize Point(-1,0)
   <i>method-modifiers</i>  function  __toString  ( )  <i>return-type<sub>opt</sub></i>  <i>compound-statement</i>
 </pre>
 
-**Defined elsewhere**
-
-* [*compound-statement*](11-statements.md#compound-statements)
-* [*method-modifiers*](#methods)
-* [*return-type*](13-functions.md#function-definitions)
-
 **Constraints**
 
 The *method-modifiers* must not contain `static` and must define public visibility.
@@ -1573,12 +1565,6 @@ class MyRangeException extends Exception
   <i>method-modifiers</i>  function  __unset  (  <i>$name</i>  )  <i>return-type<sub>opt</sub></i>  <i>compound-statement</i>
 </pre>
 
-**Defined elsewhere**
-
-* [*compound-statement*](11-statements.md#compound-statements)
-* [*method-modifiers*](#methods)
-* [*return-type*](13-functions.md#function-definitions)
-
 **Constraints**
 
 The *method-modifiers* must not contain `static` and must define public visibility.
@@ -1635,12 +1621,6 @@ See the Implementation Notes for [`__get`](#method-__get).
 <pre>
   <i>method-modifiers</i>  function  __wakeup  ( )  <i>return-type<sub>opt</sub></i>  <i>compound-statement</i>
 </pre>
-
-**Defined elsewhere**
-
-* [*compound-statement*](11-statements.md#compound-statements)
-* [*method-modifiers*](#methods)
-* [*return-type*](13-functions.md#function-definitions)
 
 **Constraints**
 
@@ -1826,7 +1806,7 @@ $s = serialize($cp);
 $v = unserialize($s);
 ```
 
-Function `unserialize` takes an optional second argument, which specifies an array of trusted class names as strings. Objects found in the data stream whose type name is not in this trusted name list are converted to objects of type [`__PHP_Incomplete_Class`](#class-__PHP_Incomplete_Class).
+Function `unserialize` takes an optional second argument, which specifies an array of trusted class names as strings. Objects found in the data stream whose type name is not in this trusted name list are converted to objects of type [`__PHP_Incomplete_Class`](#class-__php_incomplete_class).
 
 Any attempt to serialize an object having an anonymous class type results in an instance of type `Exception` being thrown.
 
@@ -2024,8 +2004,9 @@ for any other operation except serialization will result in a fatal error.
 
 This class contains no members. It can be instantiated and used as a
 base class. An instance of this type is automatically created when a
-non-object is [converted to an object](08-conversions.md#converting-to-object-type), or the [member selection
-operator](10-expressions.md#member-selection-operator) is applied to `NULL`, `FALSE`, or an empty string.
+non-object is [converted to an object](08-conversions.md#converting-to-object-type),
+or the [member selection operator](10-expressions.md#member-access-operator)
+is applied to `NULL`, `FALSE`, or an empty string.
 
 ###Predefined Error Classes
 
@@ -2050,10 +2031,6 @@ class Error implements Throwable
 }
 ```
 
-**Defined elsewhere**
-
-* [`Throwable`](15-interfaces.md#interface-throwable)
-
 For information about the base interface, see [Throwable](15-interfaces.md#interface-throwable).
 Note that the methods from Throwable are implemented as `final` in the Error class, which means
 the extending class can not override them.
@@ -2068,10 +2045,6 @@ class ArithmeticError extends Error
 }
 ```
 
-**Defined elsewhere**
-
-* [`Error`](#class-error)
-
 ####Class `AssertionError`
 
 An instance of this class is thrown when an assertion made via the intrinsic `assert` fails. The class type is defined, as follows:
@@ -2081,10 +2054,6 @@ class AssertionError extends Error
 {
 }
 ```
-
-**Defined elsewhere**
-
-* [`Error`](#class-error)
 
 ####Class `DivisionByZeroError`
 
@@ -2098,10 +2067,6 @@ class DivisionByZeroError extends Error
 }
 ```
 
-**Defined elsewhere**
-
-* [`Error`](#class-error)
-
 ####Class `ParseError`
 
 An instance of this class is thrown when an error occurs while parsing PHP code (such as when calling the intrinsic  [`eval`](10-expressions.md#eval)). It is defined, as follows:
@@ -2111,10 +2076,6 @@ class ParseError extends Error
 {
 }
 ```
-
-**Defined elsewhere**
-
-* [`Error`](#class-error)
 
 ####Class `TypeError`
 
@@ -2131,9 +2092,5 @@ class TypeError extends Error
 {
 }
 ```
-
-**Defined elsewhere**
-
-* [`Error`](#class-error)
 
 See also class [`Exception`](17-exception-handling.md#class-exception).

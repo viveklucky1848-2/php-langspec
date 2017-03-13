@@ -153,7 +153,7 @@ Since undefined local variables are not defined implicitly, they stay undefined.
 
 *byRef Context*
 
-If the undefined variable is used in a [byRef context](04-basic-concepts#byRef) then PHP defines the variable implicitly. Hence, a VSlot is created for it and `NULL` is stored in it. A notice is *not* emitted in such a case.
+If the undefined variable is used in a byRef context then PHP defines the variable implicitly. Hence, a VSlot is created for it and `NULL` is stored in it. A notice is *not* emitted in such a case.
 
 *Examples of Undefined Variables*
 
@@ -217,8 +217,7 @@ $l = $k;   // a VSlot for $l was created and the value of $k (which is NULL)
 
 **Syntax**
 
-[Arrays](12-arrays.md#arrays) are created via the [array-creation operator](10-expressions.md#array-creation-operator) or
-the intrinsic [`array`](10-expressions.md#array). At the same time, one or more elements
+[Arrays](12-arrays.md#arrays) are created using the [array-creation operator](10-expressions.md#array-creation-operator). At the same time, one or more elements
 may be created for that array. New elements are inserted into an
 existing array via the [simple-assignment operator](10-expressions.md#simple-assignment) in
 conjunction with the subscript [operator `[]`](10-expressions.md#subscript-operator). Elements can be
@@ -267,25 +266,35 @@ $b = &colors[100];      // a VSlot for $b is created which points to the array
 
 **Syntax**
 
+<!-- GRAMMAR
+function-static-declaration:
+  'static' static-variable-name-list ';'
+
+static-variable-name-list:
+  static-variable-declaration
+  static-variable-name-list ',' static-variable-declaration
+
+static-variable-declaration:
+  variable-name function-static-initializer?
+
+function-static-initializer:
+  '=' constant-expression
+-->
+
 <pre>
-  <i>function-static-declaration:</i>
-    static <i>static-variable-name-list</i>  ;
+<i id="grammar-function-static-declaration">function-static-declaration:</i>
+   static   <i><a href="#grammar-static-variable-name-list">static-variable-name-list</a></i>   ;
 
-  <i>static-variable-name-list:</i>
-    <i>static-variable-declaration</i>
-	<i>static-variable-name-list</i>  ,  <i>static-variable-declaration</i>
+<i id="grammar-static-variable-name-list">static-variable-name-list:</i>
+   <i><a href="#grammar-static-variable-declaration">static-variable-declaration</a></i>
+   <i><a href="#grammar-static-variable-name-list">static-variable-name-list</a></i>   ,   <i><a href="#grammar-static-variable-declaration">static-variable-declaration</a></i>
 
-  <i>static-variable-declaration:</i>
-	<i>variable-name</i> <i>function-static-initializer<sub>opt</sub></i>
+<i id="grammar-static-variable-declaration">static-variable-declaration:</i>
+   <i><a href="09-lexical-structure.md#grammar-variable-name">variable-name</a></i>   <i><a href="#grammar-function-static-initializer">function-static-initializer</a></i><sub>opt</sub>
 
-  <i>function-static-initializer:</i>
-    = <i>constant-expression</i>
+<i id="grammar-function-static-initializer">function-static-initializer:</i>
+   =   <i><a href="10-expressions.md#grammar-constant-expression">constant-expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*variable-name*](09-lexical-structure.md#names)
-* [*constant-expression*](10-expressions.md#constant-expressions)
 
 **Constraints**
 
@@ -351,29 +360,23 @@ echo "\$fs = $fs\n";    // $fs = 3
 
 **Syntax**
 
+<!-- GRAMMAR
+global-declaration:
+  'global' variable-name-list ';'
+
+variable-name-list:
+  simple-variable
+  variable-name-list ',' simple-variable
+-->
+
 <pre>
-  <i>global-declaration:</i>
-    global <i>variable-name-list</i> ;
+<i id="grammar-global-declaration">global-declaration:</i>
+   global   <i><a href="#grammar-variable-name-list">variable-name-list</a></i>   ;
 
-  <i>variable-name-list:</i>
-    <i>global-variable</i>
-    <i>variable-name-list</i>  ,  <i>global-variable</i>
-
-  <i>global-variable:</i>
-    <i>variable-name</i>
-	<i>variable-name-creation-expression</i>
+<i id="grammar-variable-name-list">variable-name-list:</i>
+   <i><a href="10-expressions.md#grammar-simple-variable">simple-variable</a></i>
+   <i><a href="#grammar-variable-name-list">variable-name-list</a></i>   ,   <i><a href="10-expressions.md#grammar-simple-variable">simple-variable</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*expression*](10-expressions.md#general-6)
-* [*variable-name*](09-lexical-structure.md#names)
-* [*variable-name-creation-expression*](10-expressions.md#variable-name-creation-operator)
-
-**Constraints**
-
-Each *variable-name-creation-expression* must designate a simple variable name, i.e. it can not include array elements,
-property accesses, etc. that are not inside braced expression.
 
 **Semantics**
 

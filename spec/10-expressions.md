@@ -34,14 +34,14 @@ is a sequence point at the end of each full expression. The [logical and](#logic
 operators each contain a sequence point. (For example, in the
 following series of expression statements, `$a = 10; ++$a; $b = $a;`,
 there is sequence point at the end of each full expression, so the
-assignment to $a is completed before `$a` is incremented, and the
+assignment to `$a` is completed before `$a` is incremented, and the
 increment is completed before the assignment to `$b`).
 
 When an expression contains multiple operators, the *precedence* of
 those operators controls the order in which those operators are applied.
 (For example, the expression `$a - $b / $c` is evaluated as
-`$a - ($b / $c)` because the / operator has higher precedence than the
-binary - operator). The precedence of an operator is determined by the
+`$a - ($b / $c)` because the `/` operator has higher precedence than the
+binary `-` operator). The precedence of an operator is determined by the
 definition of its associated grammar production.
 
 If an operand occurs between two operators having the same precedence,
@@ -74,7 +74,7 @@ called, is unspecified).
 
 An expression that contains no side effects and whose resulting value is
 not used need not be evaluated. For example, the expression statements
-`6;, $i + 6;`, and `$i/$j`; are well formed, but they contain no side
+`6;`, `$i + 6;`, and `$i/$j`; are well formed, but they contain no side
 effects and their results are not used.
 
 A side effect need not be executed if it can be determined that no other
@@ -89,53 +89,208 @@ function, `$a` need not actually be incremented.
 
 **Syntax**
 
+<!-- GRAMMAR
+primary-expression:
+  variable
+  class-constant-access-expression
+  constant-access-expression
+  literal
+  array-creation-expression
+  intrinsic
+  anonymous-function-creation-expression
+  '(' expression ')'
+-->
+
 <pre>
-  <i>primary-expression:</i>
-    <i>variable-name</i>
-    <i>qualified-name</i>
-    <i>literal</i>
-    <i>constant-expression</i>
-    <i>intrinsic</i>
-    <i>anonymous-function-creation-expression</i>
-    (  <i>expression</i>  )
-    $this
+<i id="grammar-primary-expression">primary-expression:</i>
+   <i><a href="#grammar-variable">variable</a></i>
+   <i><a href="#grammar-class-constant-access-expression">class-constant-access-expression</a></i>
+   <i><a href="#grammar-constant-access-expression">constant-access-expression</a></i>
+   <i><a href="#grammar-literal">literal</a></i>
+   <i><a href="#grammar-array-creation-expression">array-creation-expression</a></i>
+   <i><a href="#grammar-intrinsic">intrinsic</a></i>
+   <i><a href="#grammar-anonymous-function-creation-expression">anonymous-function-creation-expression</a></i>
+   (   <i><a href="#grammar-expression">expression</a></i>   )
 </pre>
-
-**Defined elsewhere**
-
-* [*variable-name*](09-lexical-structure.md#names)
-* [*qualified-name*](09-lexical-structure.md#names)
-* [*literal*](#literals)
-* [*constant-expression*](#constant-expressions)
-* [*intrinsic*](#general-2)
-* [*anonymous-function-creation-expression*](#anonymous-function-creation)
-* [*expression*](#script-inclusion-operators)
 
 **Semantics**
 
 The type and value of parenthesized expression are identical to those of
 the un-parenthesized expression.
 
+###Simple Variable
+
+**Syntax**
+
+<!-- GRAMMAR
+simple-variable:
+  variable-name
+  '$' simple-variable
+  '$' '{' expression '}'
+-->
+
+<pre>
+<i id="grammar-simple-variable">simple-variable:</i>
+   <i><a href="09-lexical-structure.md#grammar-variable-name">variable-name</a></i>
+   $   <i><a href="#grammar-simple-variable">simple-variable</a></i>
+   $   {   <i><a href="#grammar-expression">expression</a></i>   }
+</pre>
+
+**Constraints**
+
+The *simple-variable* or *expression* in the last two variants
+must designate a scalar value or object convertible to string.
+
+**Semantics**
+
+A *simple-variable* expression designates a variable with the name determined by either
+the *variable-name* or the string representation of the result of the *simple-variable* or
+*expression*, depending on which case is applicable. In the latter two cases the variable
+name may contain characters that are not allowed in a lexical
+[variable-name](09-lexical-structure.md#names).
+
+The behavior of a *simple-variable* in different contexts and for different types of
+variables is as specified in the [variables](07-variables.md) section.
+
 The variable `$this` is predefined inside any non-static instance method (including
 constructor) when that method is called from within an object
 context. The value of `$this` is the calling object or the object being constructed.
+
+**Examples**
+
+```PHP
+$color = "red";
+$$color = 123;    // equivalent to $red = 123
+// -----------------------------------------
+$x = 'ab'; $ab = 'fg'; $fg = 'xy';
+$$ $ $x = 'Hello';  // equivalent to $xy = Hello
+// -----------------------------------------
+$v1 = 3;
+$$v1 = 22;        // equivalent to ${3} = 22, variable name is "3"
+$v2 = 9.543;
+$$v2 = TRUE;    // equivalent to ${9.543} = TRUE
+$v3 = NULL;
+$$v3 = "abc";   // equivalent to ${NULL} = "abc", here we create a variable with empty name
+// -----------------------------------------
+function f1 () { return 2.5; }
+${1 + f1()} = 1000;   // equivalent to ${3.5} = 1000
+```
+
+###Dereferencable expression
+
+**Syntax**
+
+<!-- GRAMMAR
+dereferencable-expression:
+  variable
+  '(' expression ')'
+  array-creation-expression
+  string-literal
+
+callable-expression:
+  callable-variable
+  '(' expression ')'
+  array-creation-expression
+  string-literal
+-->
+
+<pre>
+<i id="grammar-dereferencable-expression">dereferencable-expression:</i>
+   <i><a href="#grammar-variable">variable</a></i>
+   (   <i><a href="#grammar-expression">expression</a></i>   )
+   <i><a href="#grammar-array-creation-expression">array-creation-expression</a></i>
+   <i><a href="09-lexical-structure.md#grammar-string-literal">string-literal</a></i>
+
+<i id="grammar-callable-expression">callable-expression:</i>
+   <i><a href="#grammar-callable-variable">callable-variable</a></i>
+   (   <i><a href="#grammar-expression">expression</a></i>   )
+   <i><a href="#grammar-array-creation-expression">array-creation-expression</a></i>
+   <i><a href="09-lexical-structure.md#grammar-string-literal">string-literal</a></i>
+</pre>
+
+**Constraints**
+
+The *string-literal* must not use variable interpolation and must not be a heredoc
+or nowdoc string literal.
+
+**Semantics**
+
+A *dereferencable-expression* can be used as the left hand side of dereferencing operators, such
+as `[]`, `->` and `::`. A *callable-expression* can be used as the left hand side of the [function
+call operator](#function-call-operator).
+
+###Variables
+
+**Syntax**
+
+<!-- GRAMMAR
+callable-variable:
+  simple-variable
+  subscript-expression
+  member-call-expression
+  scoped-call-expression
+  function-call-expression
+
+variable:
+  callable-variable
+  scoped-property-access-expression
+  member-access-expression
+-->
+
+<pre>
+<i id="grammar-callable-variable">callable-variable:</i>
+   <i><a href="#grammar-simple-variable">simple-variable</a></i>
+   <i><a href="#grammar-subscript-expression">subscript-expression</a></i>
+   <i><a href="#grammar-member-call-expression">member-call-expression</a></i>
+   <i><a href="#grammar-scoped-call-expression">scoped-call-expression</a></i>
+   <i><a href="#grammar-function-call-expression">function-call-expression</a></i>
+
+<i id="grammar-variable">variable:</i>
+   <i><a href="#grammar-callable-variable">callable-variable</a></i>
+   <i><a href="#grammar-scoped-property-access-expression">scoped-property-access-expression</a></i>
+   <i><a href="#grammar-member-access-expression">member-access-expression</a></i>
+</pre>
+
+**Semantics**
+
+A *variable* is an expression that can *in principle* be used as an lvalue. However, the
+individual possible expressions may further restrict whether they can behave as lvalues.
+An expression that is not a *variable* can never act as an lvalue.
+
+###Constant Access Expression
+
+<!-- GRAMMAR
+constant-access-expression:
+  qualified-name
+-->
+
+<pre>
+<i id="grammar-constant-access-expression">constant-access-expression:</i>
+   <i><a href="09-lexical-structure.md#grammar-qualified-name">qualified-name</a></i>
+</pre>
+
+**Semantics**
+
+A *constant-access-expression* evaluates to the value of the [constant](06-constants.md)
+with name *qualified-name*.
 
 ###Literals
 
 **Syntax**
 
+<!-- GRAMMAR
+literal:
+  integer-literal
+  floating-literal
+  string-literal
+-->
+
 <pre>
-  <i>literal:</i>
-    <i>integer-literal</i>
-    <i>floating-literal</i>
-    <i>string-literal</i>
+<i id="grammar-literal">literal:</i>
+   <i><a href="09-lexical-structure.md#grammar-integer-literal">integer-literal</a></i>
+   <i><a href="09-lexical-structure.md#grammar-floating-literal">floating-literal</a></i>
+   <i><a href="09-lexical-structure.md#grammar-string-literal">string-literal</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*integer-literal*](09-lexical-structure.md#integer-literals)
-* [*floating-literal*](09-lexical-structure.md#floating-point-literals)
-* [*string-literal*](09-lexical-structure.md#string-literals)
 
 **Semantics**
 
@@ -147,36 +302,41 @@ A literal evaluates to its value, as specified in the lexical specification for
 ####General
 
 **Syntax**
+<!-- GRAMMAR
+intrinsic:
+  intrinsic-construct
+  intrinsic-operator
+
+intrinsic-construct:
+  echo-intrinsic
+  list-intrinsic
+  unset-intrinsic
+
+intrinsic-operator:
+  empty-intrinsic
+  eval-intrinsic
+  exit-intrinsic
+  isset-intrinsic
+  print-intrinsic
+-->
+
 <pre>
-  <i>intrinsic:</i>
-    <i>intrisic-construct</i>
-    <i>intrisic-operator</i>
+<i id="grammar-intrinsic">intrinsic:</i>
+   <i><a href="#grammar-intrinsic-construct">intrinsic-construct</a></i>
+   <i><a href="#grammar-intrinsic-operator">intrinsic-operator</a></i>
 
-  <i>intrisic-construct:</i>
-    <i>echo-intrinsic</i>
-    <i>list-intrinsic</i>
-    <i>unset-intrinsic</i>
+<i id="grammar-intrinsic-construct">intrinsic-construct:</i>
+   <i><a href="#grammar-echo-intrinsic">echo-intrinsic</a></i>
+   <i><a href="#grammar-list-intrinsic">list-intrinsic</a></i>
+   <i><a href="#grammar-unset-intrinsic">unset-intrinsic</a></i>
 
-  <i>intrinsic-operator:</i>
-    <i>array-intrinsic</i>
-    <i>empty-intrinsic</i>
-    <i>eval-intrinsic</i>
-    <i>exit-intrinsic</i>
-    <i>isset-intrinsic</i>
-    <i>print-intrinsic</i>
+<i id="grammar-intrinsic-operator">intrinsic-operator:</i>
+   <i><a href="#grammar-empty-intrinsic">empty-intrinsic</a></i>
+   <i><a href="#grammar-eval-intrinsic">eval-intrinsic</a></i>
+   <i><a href="#grammar-exit-intrinsic">exit-intrinsic</a></i>
+   <i><a href="#grammar-isset-intrinsic">isset-intrinsic</a></i>
+   <i><a href="#grammar-print-intrinsic">print-intrinsic</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*array-intrinsic*](#array)
-* [*echo-intrinsic*](#echo)
-* [*empty-intrinsic*](#empty)
-* [*eval-intrinsic*](#eval)
-* [*exit-intrinsic*](#exitdie)
-* [*isset-intrinsic*](#isset)
-* [*list-intrinsic*](#list)
-* [*print-intrinsic*](#print)
-* [*unset-intrinsic*](#unset)
 
 **Semantics**
 
@@ -187,43 +347,29 @@ are language constructs that are interpreted by the Engine.
 *intrinsic-operator* can be used as part of an expression, in any place
 other values or expressions could be used.
 
-*intrisic-construct* can be used only as stand-alone [statement](11-statements.md#statements).
-
-####array
-
-**Syntax**
-
-<pre>
-  <i>array-intrinsic:</i>
-    array ( <i>array-initializer<sub>opt</sub></i>  )
-</pre>
-
-**Defined elsewhere**
-
-* [*array-initializer*](#array-creation-operator)
-
-**Semantics**
-
-This intrinsic creates and initializes an array. It is equivalent to the
-array-creation operator [`[]`](#array-creation-operator).
+*intrinsic-construct* can be used only as stand-alone [statement](11-statements.md#statements).
 
 ####echo
 
 **Syntax**
 
+<!-- GRAMMAR
+echo-intrinsic:
+  'echo' expression-list
+
+expression-list:
+  expression
+  expression-list ',' expression
+-->
+
 <pre>
-  <i>echo-intrinsic:</i>
-    echo  <i>expression</i>
-    echo  <i>expression-list-two-or-more</i>
+<i id="grammar-echo-intrinsic">echo-intrinsic:</i>
+   echo   <i><a href="#grammar-expression-list">expression-list</a></i>
 
-  <i>expression-list-two-or-more:</i>
-    <i>expression</i>  ,  <i>expression</i>
-    <i>expression-list-two-or-more</i>  ,  <i>expression</i>
+<i id="grammar-expression-list">expression-list:</i>
+   <i><a href="#grammar-expression">expression</a></i>
+   <i><a href="#grammar-expression-list">expression-list</a></i>   ,   <i><a href="#grammar-expression">expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*expression*](#general-6)
 
 **Constraints**
 
@@ -238,7 +384,7 @@ necessary, `echo` concatenates them in order given, and writes the
 resulting string to [`STDOUT`](06-constants.md#core-predefined-constants). Unlike [`print`](#print), it does
 not produce a result.
 
-See also: [double quioted strings](09-lexical-structure.md#double-quoted-string-literals) and
+See also: [double quoted strings](09-lexical-structure.md#double-quoted-string-literals) and
 [heredoc documents](09-lexical-structure.md#heredoc-string-literals), [conversion to string](08-conversions.md#converting-to-string-type).
 
 **Examples**
@@ -257,14 +403,15 @@ echo "$v3\n";
 
 **Syntax**
 
+<!-- GRAMMAR
+empty-intrinsic:
+  'empty' '(' expression ')'
+-->
+
 <pre>
-  <i>empty-intrinsic:</i>
-    empty ( <i>expression</i>  )
+<i id="grammar-empty-intrinsic">empty-intrinsic:</i>
+   empty   (   <i><a href="#grammar-expression">expression</a></i>   )
 </pre>
-
-**Defined elsewhere**
-
-* [*expression*](#general-6)
 
 **Semantics**
 
@@ -296,14 +443,15 @@ empty($v);   // results in FALSE
 
 **Syntax**
 
+<!-- GRAMMAR
+eval-intrinsic:
+  'eval' '(' expression ')'
+-->
+
 <pre>
-  <i>eval-intrinsic:</i>
-    eval (  <i>expression</i>  )
+<i id="grammar-eval-intrinsic">eval-intrinsic:</i>
+   eval   (   <i><a href="#grammar-expression">expression</a></i>   )
 </pre>
-
-**Defined elsewhere**
-
-* [*expression*](#general-6)
 
 **Constraints**
 
@@ -338,17 +486,21 @@ eval("echo \$str . \"\\n\";");  // → echo $str . "\n"; → prints Hello
 
 **Syntax**
 
+<!-- GRAMMAR
+exit-intrinsic:
+  'exit'
+  'exit' '(' expression? ')'
+  'die'
+  'die' '(' expression? ')'
+-->
+
 <pre>
-  <i>exit-intrinsic:</i>
-    exit  <i>expression<sub>opt</sub></i>
-    exit  (  <i>expression<sub>opt</sub></i>  )
-    die   <i>expression<sub>opt</sub></i>
-    die   (   <i>expression<sub>opt</sub></i> )
+<i id="grammar-exit-intrinsic">exit-intrinsic:</i>
+   exit
+   exit   (   <i><a href="#grammar-expression">expression</a></i><sub>opt</sub>   )
+   die
+   die   (   <i><a href="#grammar-expression">expression</a></i><sub>opt</sub>   )
 </pre>
-
-**Defined elsewhere**
-
-* [*expression*](#general-6)
 
 **Constraints**
 
@@ -386,27 +538,28 @@ exit;
 
 **Syntax**
 
+<!-- GRAMMAR
+isset-intrinsic:
+  'isset' '(' variable-list ')'
+
+variable-list:
+  variable
+  variable-list ',' variable
+-->
+
 <pre>
-  <i>isset-intrinsic:</i>
-    isset  (  <i>expression-list-one-or-more</i>  )
+<i id="grammar-isset-intrinsic">isset-intrinsic:</i>
+   isset   (   <i><a href="#grammar-variable-list">variable-list</a></i>   )
 
-  <i>expression-list-one-or-more</i>:
-    <i>expression</i>
-    <i>expression-list-one-or-more</i>  ,  <i>expression</i>
+<i id="grammar-variable-list">variable-list:</i>
+   <i><a href="#grammar-variable">variable</a></i>
+   <i><a href="#grammar-variable-list">variable-list</a></i>   ,   <i><a href="#grammar-variable">variable</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*expression*](#general-6)
-
-**Constraints**
-
-Each *expression* must designate a variable.
 
 **Semantics**
 
 This intrinsic returns `TRUE` if all the variables designated by
-*expression*s are set and their values are not `NULL`. Otherwise, it
+*variables*s are set and their values are not `NULL`. Otherwise, it
 returns `FALSE`.
 
 If this intrinsic is used with an expression that designate a [dynamic
@@ -431,31 +584,49 @@ isset($v1, $v2, $v3);  // results in FALSE
 
 **Syntax**
 
+<!-- GRAMMAR
+list-intrinsic:
+  'list' '(' list-expression-list ')'
+
+list-expression-list:
+  unkeyed-list-expression-list
+  keyed-list-expression-list ','?
+
+unkeyed-list-expression-list:
+  list-or-variable
+  ','
+  unkeyed-list-expression-list ',' list-or-variable?
+
+keyed-list-expression-list:
+  expression '=>' list-or-variable
+  keyed-list-expression-list ',' expression '=>' list-or-variable
+
+list-or-variable:
+  list-intrinsic
+  expression
+-->
+
 <pre>
-  <i>list-intrinsic:</i>
-    list  (  <i>list-expression-list<sub>opt</sub></i>  )
+<i id="grammar-list-intrinsic">list-intrinsic:</i>
+   list   (   <i><a href="#grammar-list-expression-list">list-expression-list</a></i>   )
 
-  <i>list-expression-list:</i>
-    <i>unkeyed-list-expression-list</i>
-    <i>keyed-list-expression-list</i> ,<sub>opt</sub>
+<i id="grammar-list-expression-list">list-expression-list:</i>
+   <i><a href="#grammar-unkeyed-list-expression-list">unkeyed-list-expression-list</a></i>
+   <i><a href="#grammar-keyed-list-expression-list">keyed-list-expression-list</a></i>   ,<sub>opt</sub>
 
-  <i>unkeyed-list-expression-list:</i>
-    <i>list-or-variable</i>
-    ,
-    <i>unkeyed-list-expression-list</i>  ,  <i>list-or-variable<sub>opt</sub></ii>
+<i id="grammar-unkeyed-list-expression-list">unkeyed-list-expression-list:</i>
+   <i><a href="#grammar-list-or-variable">list-or-variable</a></i>
+   ,
+   <i><a href="#grammar-unkeyed-list-expression-list">unkeyed-list-expression-list</a></i>   ,   <i><a href="#grammar-list-or-variable">list-or-variable</a></i><sub>opt</sub>
 
-  <i>keyed-list-expression-list:</i>
-    <i>expression</i>  =>  <i>list-or-variable</i>
-    <i>keyed-list-expression-list</i>  ,  <i>expression</i>  =>  <i>list-or-variable</i>
+<i id="grammar-keyed-list-expression-list">keyed-list-expression-list:</i>
+   <i><a href="#grammar-expression">expression</a></i>   =&gt;   <i><a href="#grammar-list-or-variable">list-or-variable</a></i>
+   <i><a href="#grammar-keyed-list-expression-list">keyed-list-expression-list</a></i>   ,   <i><a href="#grammar-expression">expression</a></i>   =&gt;   <i><a href="#grammar-list-or-variable">list-or-variable</a></i>
 
-  <i>list-or-variable:</i>
-    <i>list-intrinsic</i>
-    <i>expression</i>
+<i id="grammar-list-or-variable">list-or-variable:</i>
+   <i><a href="#grammar-list-intrinsic">list-intrinsic</a></i>
+   <i><a href="#grammar-expression">expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*expression*](#general-6)
 
 **Constraints**
 
@@ -545,15 +716,15 @@ list(0 => list($x1, $x2), 1 => list($x2, $y2)) = [[1, 2], [3, 4]];
 
 **Syntax**
 
+<!-- GRAMMAR
+print-intrinsic:
+  'print' expression
+-->
+
 <pre>
-  <i>print-intrinsic:</i>
-    print  <i>expression</i>
-    print  (  <i>expression</i>  )
+<i id="grammar-print-intrinsic">print-intrinsic:</i>
+   print   <i><a href="#grammar-expression">expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*expression*](#general-6)
 
 **Constraints**
 
@@ -568,7 +739,7 @@ After converting its *expression*'s value to a string, if necessary,
 Unlike [`echo`](#echo), `print` can be used in any context allowing an expression. It
 always returns the value 1.
 
-See also: [double quioted strings](09-lexical-structure.md#double-quoted-string-literals) and
+See also: [double quoted strings](09-lexical-structure.md#double-quoted-string-literals) and
 [heredoc documents](09-lexical-structure.md#heredoc-string-literals), [conversion to string](08-conversions.md#converting-to-string-type).
 
 **Examples**
@@ -587,23 +758,20 @@ $a > $b ? print "..." : print "...";
 
 **Syntax**
 
+<!-- GRAMMAR
+unset-intrinsic:
+  'unset' '(' variable-list ')'
+-->
+
 <pre>
-  <i>unset-intrinsic:</i>
-    unset  (  <i>expression-list-one-or-more</i>  )
+<i id="grammar-unset-intrinsic">unset-intrinsic:</i>
+   unset   (   <i><a href="#grammar-variable-list">variable-list</a></i>   )
 </pre>
-
-**Defined elsewhere**
-
-* [*expression-list-one-or-more*](#isset)
-
-**Constraints**
-
-Each *expression* must designate a variable.
 
 **Semantics**
 
 This intrinsic [unsets](07-variables.md#general) the variables designated by each
-*expression* in *expression-list-one-or-more*. No value is returned. An
+*variable* in *variable-list*. No value is returned. An
 attempt to unset a non-existent variable (such as a non-existent element
 in an array) is ignored.
 
@@ -642,25 +810,29 @@ unset($x->m); // if m is a dynamic property, $x->__unset("m") is called
 
 **Syntax**
 
+<!-- GRAMMAR
+anonymous-function-creation-expression:
+'static'? 'function' '&'? '(' parameter-declaration-list? ')' anonymous-function-use-clause? return-type? compound-statement
+
+anonymous-function-use-clause:
+  'use' '(' use-variable-name-list ')'
+
+use-variable-name-list:
+  '&'? variable-name
+  use-variable-name-list ',' '&'? variable-name
+-->
+
 <pre>
-  <i>anonymous-function-creation-expression:</i>
-  static<sub>opt</sub> function  &<sub>opt</sub> (  <i>parameter-declaration-list<sub>opt<sub></i>  ) <i>return-type<sub>opt</sub></i> <i>anonymous-function-use-clause<sub>opt</sub></i>
-      <i>compound-statement</i>
+<i id="grammar-anonymous-function-creation-expression">anonymous-function-creation-expression:</i>
+   static<sub>opt</sub>   function   &amp;<sub>opt</sub>   (   <i><a href="13-functions.md#grammar-parameter-declaration-list">parameter-declaration-list</a></i><sub>opt</sub>   )   <i><a href="#grammar-anonymous-function-use-clause">anonymous-function-use-clause</a></i><sub>opt</sub>   <i><a href="13-functions.md#grammar-return-type">return-type</a></i><sub>opt</sub>   <i><a href="11-statements.md#grammar-compound-statement">compound-statement</a></i>
 
-  <i>anonymous-function-use-clause:</i>
-    use  (  <i>use-variable-name-list</i>  )
+<i id="grammar-anonymous-function-use-clause">anonymous-function-use-clause:</i>
+   use   (   <i><a href="#grammar-use-variable-name-list">use-variable-name-list</a></i>   )
 
-  <i>use-variable-name-list:</i>
-    &amp;<sub>opt</sub>   <i>variable-name</i>
-    <i>use-variable-name-list</i>  ,  &<sub>opt</sub>  <i>variable-name</i>
+<i id="grammar-use-variable-name-list">use-variable-name-list:</i>
+   &amp;<sub>opt</sub>   <i><a href="09-lexical-structure.md#grammar-variable-name">variable-name</a></i>
+   <i><a href="#grammar-use-variable-name-list">use-variable-name-list</a></i>   ,   &amp;<sub>opt</sub>   <i><a href="09-lexical-structure.md#grammar-variable-name">variable-name</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*parameter-declaration-list*](13-functions.md#function-definitions)
-* [*return-type*](13-functions.md#function-definitions)
-* [*compound-statement*](11-statements.md#compound-statements)
-* [*variable-name*](09-lexical-structure.md#names)
 
 **Semantics**
 
@@ -705,7 +877,7 @@ class C
   public function compute(array $values)
   {
     $count = 0;
-    $callback1 = function () use (&amp;$count) // has C as its scope
+    $callback1 = function () use (&$count) // has C as its scope
     {
       ++$count;
       //...
@@ -727,34 +899,25 @@ class C
 
 **Syntax**
 
+<!-- GRAMMAR
+postfix-expression:
+  primary-expression
+  clone-expression
+  object-creation-expression
+  postfix-increment-expression
+  postfix-decrement-expression
+  exponentiation-expression
+-->
+
 <pre>
-  <i>postfix-expression:</i>
-    <i>primary-expression</i>
-    <i>clone-expression</i>
-    <i>object-creation-expression</i>
-    <i>array-creation-expression</i>
-    <i>subscript-expression</i>
-    <i>function-call-expression</i>
-    <i>member-selection-expression</i>
-    <i>postfix-increment-expression</i>
-    <i>postfix-decrement-expression</i>
-    <i>scope-resolution-expression</i>
-    <i>exponentiation-expression</i>
+<i id="grammar-postfix-expression">postfix-expression:</i>
+   <i><a href="#grammar-primary-expression">primary-expression</a></i>
+   <i><a href="#grammar-clone-expression">clone-expression</a></i>
+   <i><a href="#grammar-object-creation-expression">object-creation-expression</a></i>
+   <i><a href="#grammar-postfix-increment-expression">postfix-increment-expression</a></i>
+   <i><a href="#grammar-postfix-decrement-expression">postfix-decrement-expression</a></i>
+   <i><a href="#grammar-exponentiation-expression">exponentiation-expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*primary-expression*](#general-1)
-* [*clone-expression*](#the-clone-operator)
-* [*object-creation-expression*](#the-new-operator)
-* [*array-creation-expression*](#array-creation-operator)
-* [*subscript-expression*](#subscript-operator)
-* [*function-call-expression*](#function-call-operator)
-* [*member-selection-expression*](#member-selection-operator)
-* [*postfix-increment-expression*](#postfix-increment-and-decrement-operators)
-* [*postfix-decrement-expression*](#postfix-increment-and-decrement-operators)
-* [*scope-resolution-expression*](#scope-resolution-operator)
-* [*exponentiation-expression*](#exponentiation-operator)
 
 **Semantics**
 
@@ -764,14 +927,15 @@ These operators associate left-to-right.
 
 **Syntax**
 
+<!-- GRAMMAR
+clone-expression:
+  'clone' expression
+-->
+
 <pre>
-  <i>clone-expression:</i>
-    clone  <i>expression</i>
+<i id="grammar-clone-expression">clone-expression:</i>
+   clone   <i><a href="#grammar-expression">expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*expression*](#general-6)
 
 **Constraints**
 
@@ -818,29 +982,29 @@ $obj2 = clone $obj1;  // creates a new Manager that is a deep copy
 
 **Syntax**
 
+<!-- GRAMMAR
+object-creation-expression:
+  'new' class-type-designator '(' argument-expression-list? ')'
+  'new' class-type-designator
+  'new' 'class' '(' argument-expression-list? ')' class-base-clause? class-interface-clause? '{' class-member-declarations? '}'
+  'new' 'class' class-base-clause? class-interface-clause? '{' class-member-declarations? '}'
+
+class-type-designator:
+  qualified-name
+  expression
+-->
+
 <pre>
-  <i>object-creation-expression:</i>
-    new  <i>class-type-designator</i>  (  <i>argument-expression-list<sub>opt</sub></i>  )
-    new  <i>class-type-designator</i>
-    new  class  (  <i>argument-expression-list<sub>opt</sub></i>  )
-        <i>class-base-clause<sub>opt</sub></i>   <i>class-interface-clause<sub>opt</sub></i>
-        {   <iclass-member-declarations<sub>opt</sub></i>   }
-    new  class <i>class-base-clause<sub>opt</sub></i>  <i>class-interface-clause<sub>opt</sub></i>
-        {   <i>class-member-declarations<sub>opt</sub></i>   }
+<i id="grammar-object-creation-expression">object-creation-expression:</i>
+   new   <i><a href="#grammar-class-type-designator">class-type-designator</a></i>   (   <i><a href="#grammar-argument-expression-list">argument-expression-list</a></i><sub>opt</sub>   )
+   new   <i><a href="#grammar-class-type-designator">class-type-designator</a></i>
+   new   class   (   <i><a href="#grammar-argument-expression-list">argument-expression-list</a></i><sub>opt</sub>   )   <i><a href="14-classes.md#grammar-class-base-clause">class-base-clause</a></i><sub>opt</sub>   <i><a href="14-classes.md#grammar-class-interface-clause">class-interface-clause</a></i><sub>opt</sub>   {   <i><a href="14-classes.md#grammar-class-member-declarations">class-member-declarations</a></i><sub>opt</sub>   }
+   new   class   <i><a href="14-classes.md#grammar-class-base-clause">class-base-clause</a></i><sub>opt</sub>   <i><a href="14-classes.md#grammar-class-interface-clause">class-interface-clause</a></i><sub>opt</sub>   {   <i><a href="14-classes.md#grammar-class-member-declarations">class-member-declarations</a></i><sub>opt</sub>   }
 
-  <i>class-type-designator:</i>
-    <i>qualified-name</i>
-    <i>expression</i>
+<i id="grammar-class-type-designator">class-type-designator:</i>
+   <i><a href="09-lexical-structure.md#grammar-qualified-name">qualified-name</a></i>
+   <i><a href="#grammar-expression">expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*argument-expression-list*](#function-call-operator)
-* [*class-base-clause*](14-classes.md#class-declarations)
-* [*class-interface-clause*](14-classes.md#class-declarations)
-* [*class-member-declarations*](14-classes.md#class-members)
-* [*expression*](#general-6)
-* [*qualified-name*](09-lexical-structure.md#names)
 
 **Constraints**
 
@@ -908,38 +1072,53 @@ $v2 = new class (100) extends C1 implements I1, I2 {
 
 ###Array Creation Operator
 
-An array is created and initialized by one of two equivalent ways: via
-the array-creation operator `[]`, as described below, or the intrinsic
-[`array`](#array).
-
 **Syntax**
 
+<!-- GRAMMAR
+array-creation-expression:
+  'array' '(' array-initializer? ')'
+  '[' array-initializer? ']'
+
+array-initializer:
+  array-initializer-list ','?
+
+array-initializer-list:
+  array-element-initializer
+  array-element-initializer ',' array-initializer-list
+
+array-element-initializer:
+  '&'? element-value
+  element-key '=>' '&'? element-value
+
+element-key:
+  expression
+
+element-value:
+  expression
+-->
+
 <pre>
-  <i>array-creation-expression:</i>
-    array  (  <i>array-initializer<sub>opt</sub></i>  )
-    [ <i>array-initializer<sub>opt</sub></i> ]
+<i id="grammar-array-creation-expression">array-creation-expression:</i>
+   array   (   <i><a href="#grammar-array-initializer">array-initializer</a></i><sub>opt</sub>   )
+   [   <i><a href="#grammar-array-initializer">array-initializer</a></i><sub>opt</sub>   ]
 
-  <i>array-initializer:</i>
-    <i>array-initializer-list</i>  ,<sub>opt</sub>
+<i id="grammar-array-initializer">array-initializer:</i>
+   <i><a href="#grammar-array-initializer-list">array-initializer-list</a></i>   ,<sub>opt</sub>
 
-  <i>array-initializer-list:</i>
-    <i>array-element-initializer</i>
-    <i>array-element-initializer  ,  array-initializer-list</i>
+<i id="grammar-array-initializer-list">array-initializer-list:</i>
+   <i><a href="#grammar-array-element-initializer">array-element-initializer</a></i>
+   <i><a href="#grammar-array-element-initializer">array-element-initializer</a></i>   ,   <i><a href="#grammar-array-initializer-list">array-initializer-list</a></i>
 
-  <i>array-element-initializer:</i>
-    &<sub>opt</sub>   <i>element-value</i>
-    <i>element-key</i>  =>  &<sub>opt</sub>   <i>element-value</i>
+<i id="grammar-array-element-initializer">array-element-initializer:</i>
+   &amp;<sub>opt</sub>   <i><a href="#grammar-element-value">element-value</a></i>
+   <i><a href="#grammar-element-key">element-key</a></i>   =&gt;   &amp;<sub>opt</sub>   <i><a href="#grammar-element-value">element-value</a></i>
 
-  <i>element-key:</i>
-    <i>expression</i>
+<i id="grammar-element-key">element-key:</i>
+   <i><a href="#grammar-expression">expression</a></i>
 
-  <i>element-value</i>
-    <i>expression</i>
+<i id="grammar-element-value">element-value:</i>
+   <i><a href="#grammar-expression">expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*expression*](#general-6)
 
 **Constraints**
 
@@ -1008,25 +1187,26 @@ for ($i = -1; $i <= 2; ++$i) { echo $v[$i]; } // retrieves via keys -1, 0, 1, 2
 
 **Syntax**
 
+<!-- GRAMMAR
+subscript-expression:
+  dereferencable-expression '[' expression? ']'
+  dereferencable-expression '{' expression '}' "<b>[Deprecated form]</b>"
+-->
+
 <pre>
-  <i>subscript-expression:</i>
-    <i>postfix-expression</i>  [  <i>expression<sub>opt</sub></i>  ]
-    <i>postfix-expression</i>  {  <i>expression</i>  }   <b>[Deprecated form]</b>
+<i id="grammar-subscript-expression">subscript-expression:</i>
+   <i><a href="#grammar-dereferencable-expression">dereferencable-expression</a></i>   [   <i><a href="#grammar-expression">expression</a></i><sub>opt</sub>   ]
+   <i><a href="#grammar-dereferencable-expression">dereferencable-expression</a></i>   {   <i><a href="#grammar-expression">expression</a></i>   }   &lt;b&gt;[Deprecated form]&lt;/b&gt;
 </pre>
-
-**Defined elsewhere**
-
-* [*postfix-expression*](#general-3)
-* [*expression*](#general-6)
 
 **Constraints**
 
-If *postfix-expression* designates a string, *expression* must not
+If *dereferencable-expression* designates a string, *expression* must not
 designate a string.
 
 *expression* can be omitted only if *subscript-expression* is used in a
-modifiable-lvalue context and *postfix-expression* does not designate a string.
-Exception from this is when *postfix-expression* is an empty string - then it is
+modifiable-lvalue context and *dereferencable-expression* does not designate a string.
+Exception from this is when *dereferencable-expression* is an empty string - then it is
 converted to an empty array.
 
 If *subscript-expression* is used in a non-lvalue context, the element
@@ -1045,14 +1225,14 @@ or `bool` values, or strings whose contents match exactly the pattern of
 [*decimal-literal*](09-lexical-structure.md#integer-literals), are [converted to integer](08-conversions.md#converting-to-integer-type),
 and key values of all other types are [converted to string](08-conversions.md#converting-to-string-type).
 
-If both *postfix-expression* and *expression* designate strings,
+If both *dereferencable-expression* and *expression* designate strings,
 *expression* is treated as if it specified the `int` key zero instead
 and a non-fatal error is produces.
 
 A *subscript-expression* designates a modifiable lvalue if and only if
-*postfix-expression* designates a modifiable lvalue.
+*dereferencable-expression* designates a modifiable lvalue.
 
-**postfix-expression designates an array**
+**dereferencable-expression designates an array**
 
 If *expression* is present, if the designated element exists, the type
 and value of the result is the type and value of that element;
@@ -1077,7 +1257,7 @@ The result is the added new element, or `NULL` if the element was not added.
     [postfix- or prefix-increment or decrement operator](#postfix-increment-and-decrement-operators), the value
     of the new element is considered to be `NULL`.
 
-**postfix-expression designates a string**
+**dereferencable-expression designates a string**
 
 The *expression* is converted to `int` and the result is the character of the
 string at the position corresponding to that integer. If the integer is negative,
@@ -1095,7 +1275,7 @@ The subscript operator can not be used on a string value in a byRef context or a
 side of [*compound-assignment-expression*](#compound-assignment),
 doing so will result in a fatal error.
 
-**postfix-expression designates an object of a type that implements `ArrayAccess`**
+**dereferencable-expression designates an object of a type that implements `ArrayAccess`**
 
 If *expression* is present,
 
@@ -1172,35 +1352,46 @@ $x = $vect1[1];   // calls Vector::offsetGet(1)
 
 **Syntax**
 
+<!-- GRAMMAR
+function-call-expression:
+  qualified-name '(' argument-expression-list? ')'
+  callable-expression '(' argument-expression-list? ')'
+
+argument-expression-list:
+  argument-expression
+  argument-expression-list ',' argument-expression
+
+argument-expression:
+  variadic-unpacking
+  assignment-expression
+
+variadic-unpacking:
+  '...' assignment-expression
+-->
+
 <pre>
-  <i>function-call-expression:</i>
-    <i>qualified-name</i>  (  <i>argument-expression-list<sub>opt</sub></i>  )
-    <i>postfix-expression</i>  (  <i>argument-expression-list<sub>opt</sub></i>  )
+<i id="grammar-function-call-expression">function-call-expression:</i>
+   <i><a href="09-lexical-structure.md#grammar-qualified-name">qualified-name</a></i>   (   <i><a href="#grammar-argument-expression-list">argument-expression-list</a></i><sub>opt</sub>   )
+   <i><a href="#grammar-callable-expression">callable-expression</a></i>   (   <i><a href="#grammar-argument-expression-list">argument-expression-list</a></i><sub>opt</sub>   )
 
-  <i>argument-expression-list:</i>
-    <i>argument-expression</i>
-    <i>argument-expression-list</i>  ,  <i>argument-expression</i>
+<i id="grammar-argument-expression-list">argument-expression-list:</i>
+   <i><a href="#grammar-argument-expression">argument-expression</a></i>
+   <i><a href="#grammar-argument-expression-list">argument-expression-list</a></i>   ,   <i><a href="#grammar-argument-expression">argument-expression</a></i>
 
-  <i>argument-expression:</i>
-    <i>variadic-unpacking</i>
-    <i>assignment-expression</i>
+<i id="grammar-argument-expression">argument-expression:</i>
+   <i><a href="#grammar-variadic-unpacking">variadic-unpacking</a></i>
+   <i><a href="#grammar-assignment-expression">assignment-expression</a></i>
 
-  <i>variadic-unpacking:</i>
-    ... <i>assignment-expression</i>
-
+<i id="grammar-variadic-unpacking">variadic-unpacking:</i>
+   ...   <i><a href="#grammar-assignment-expression">assignment-expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*postfix-expression*](#general-3)
-* [*assignment-expression*](#general-5)
 
 **Constraints**
 
-*postfix-expression* must designate a function, either by being its
-*name*, by being a value of type string (but not a string literal) that
-contains the function's name, or by being an object of a type that implements
-[`__invoke`](14-classes.md#method-__invoke) method (including [`Closure`](14-classes.md#class-closure) objects).
+*callable-expression* must designate a function, by being a value of type string
+that contains the function's name, or by being an object of a type that implements
+[`__invoke`](14-classes.md#method-__invoke) method (including
+[`Closure`](14-classes.md#class-closure) objects).
 
 The number of arguments present in a function call must be at least as
 many as the number of non-optional parameters defined for that function.
@@ -1220,17 +1411,11 @@ An expression of the form *function-call-expression* is a *function
 call*. The expression designates the *called function*, and
 *argument-expression-list* specifies the arguments to be passed to that
 function. An argument can be any value. In a function call,
-*postfix-expression* is evaluated first, followed by each
+*callable-expression* is evaluated first, followed by each
 *assignment-expression* in the order left-to-right. There is
 a [sequence point](#general) after each argument is evaluated and right before the function is called.
 For details of the result of a function call see [`return` statement](11-statements.md#the-return-statement).
 The value of a function call is a modifiable lvalue only if the function returns a modifiable value byRef.
-
-When *postfix-expression* designates an instance method or constructor,
-the instance used in that designation is used as the value of `$this` in
-the invoked method or constructor. However, if no instance was used in
-that designation (for example, in the call `C::instance_method()`) the
-invoked instance has no `$this` defined.
 
 When a function is called, the value of each argument passed to it is
 assigned to the corresponding parameter in that function's definition,
@@ -1253,7 +1438,7 @@ defined, with an initial value of `NULL`.
 
 Direct and indirect recursive function calls are permitted.
 
-If *postfix-expression* is a string, this is
+If *callable-expression* is a string, this is
 a [variable function call](13-functions.md#variable-functions).
 
 If *variadic-unpacking* operation is used, the operand is considered to be a parameter list.
@@ -1298,32 +1483,34 @@ $anon = function () { ... };  // store a Closure in $anon
 $anon();  // call the anonymous function encapsulated by that object
 ```
 
-###Member-Selection Operator
+###Member Access Operator
 
 **Syntax**
 
+<!-- GRAMMAR
+member-access-expression:
+  dereferencable-expression '->' member-name
+
+member-name:
+  name
+  simple-variable
+  '{' expression '}'
+-->
+
 <pre>
-  <i>member-selection-expression:</i>
-    <i>postfix-expression</i>  ->  <i>member-selection-designator</i>
+<i id="grammar-member-access-expression">member-access-expression:</i>
+   <i><a href="#grammar-dereferencable-expression">dereferencable-expression</a></i>   -&gt;   <i><a href="#grammar-member-name">member-name</a></i>
 
-  <i>member-selection-designator:</i>
-    <i>name</i>
-    <i>expression</i>
+<i id="grammar-member-name">member-name:</i>
+   <i><a href="09-lexical-structure.md#grammar-name">name</a></i>
+   <i><a href="#grammar-simple-variable">simple-variable</a></i>
+   {   <i><a href="#grammar-expression">expression</a></i>   }
 </pre>
-
-**Defined elsewhere**
-
-* [*postfix-expression*](#general-3)
-* [*name*](09-lexical-structure.md#names)
-* [*expression*](#general-6)
 
 **Constraints**
 
-*postfix-expression* must designate an object or be `NULL`, `FALSE`, or an
-empty string.
-
-*name* must designate an instance property, or an instance or static
-method of *postfix-expression*'s class type.
+The *dereferencable-expression* must designate an object or be `NULL`, `FALSE`,
+or an empty string.
 
 *expression* must be a value of type `string` (but not a string literal)
 that contains the name of an instance property (**without** the
@@ -1332,25 +1519,24 @@ type.
 
 **Semantics**
 
-A *member-selection-expression* designates an instance property or an
-instance or static method of the object designated by
-*postfix-expression*. For a property, the value is that of the property,
-and is a modifiable lvalue if *postfix-expression* is a modifiable
-lvalue.
+A *member-access-expression* designates an instance property of the object
+designated by *dereferencable-expression* with the name given by the string
+representation of *member-name*. The value is that of the property, and is a
+modifiable lvalue if *dereferencable-expression* is a modifiable lvalue.
 
-When the `->` operator is used in a modifiable lvalue context and *name*
-or *expression* designate a property that is not visible, the property
-is treated as a [dynamic property](14-classes.md#dynamic-members). If *postfix-expression*'s class
+When the `->` operator is used in a modifiable lvalue context and *member-name*
+designate a property that is not visible, the property is treated as a
+[dynamic property](14-classes.md#dynamic-members). If *dereferencable-expression*'s class
 type defines a [`__set` method](14-classes.md#method-__set), it is called to store the
 property's value. When the `->` operator is used in a non-lvalue context
-and *name* or *expression* designate a property that is not visible, the
-property is treated as a dynamic property. If *postfix-expression*'s
-class type defines a [`__get` method](14-classes.md#method-__get), it is called to retrieve
-the property's value.
+and *member-name* designate a property that is not visible, the property
+is treated as a dynamic property. If *dereferencable-expression*'s
+class type defines a [`__get` method](14-classes.md#method-__get),
+it is called to retrieve the property's value.
 
-If *postfix-expression* is `NULL`, `FALSE`, or an empty string, an expression
-of the form `$p->x = 10` causes an instance of [`stdClass`](14-classes.md#class-stdclass) to be
-created with a dynamic property x having a value of 10. `$p` is then made
+If *dereferencable-expression* is `NULL`, `FALSE`, or an empty string, an expression
+of the form `$p->x = 10` causes an instance of [`stdClass`](14-classes.md#class-stdclass)
+to be created with a dynamic property `x` having a value of 10. `$p` is then made
 to refer to this instance.
 
 **Examples**
@@ -1380,21 +1566,65 @@ $p1->color = "red"; // turned into $p1->__set("color", "red");
 $c = $p1->color;  // turned into $c = $p1->__get("color");
 ```
 
+###Member Call Operator
+
+**Syntax**
+
+<!-- GRAMMAR
+member-call-expression:
+  dereferencable-expression '->' member-name '(' argument-expression-list? ')'
+-->
+
+<pre>
+<i id="grammar-member-call-expression">member-call-expression:</i>
+   <i><a href="#grammar-dereferencable-expression">dereferencable-expression</a></i>   -&gt;   <i><a href="#grammar-member-name">member-name</a></i>   (   <i><a href="#grammar-argument-expression-list">argument-expression-list</a></i><sub>opt</sub>   )
+</pre>
+
+**Constraints**
+
+The *dereferencable-expression* must designate an object.
+
+Additionally the general [function call constraints](#function-call-operator)
+apply.
+
+**Semantics**
+
+A *member-call-expression* calls an instance or static method of the
+object designated by *dereferencable-expression*, with the method
+name given by the string representation of *member-name* and the
+arguments given by *argument-expression-list*. The value of
+*dereferencable-expression* is used as the value of `$this` in the
+invoked method.
+
+The general [function call semantics](#function-call-operator) apply.
+
+If the called method does not exist or is not visible from the current
+scope an exception is thrown, unless a [`__call` method](14-classes.md#method-__call)
+exists, in which case it will be called instead.
+
+**Examples**
+
+See [member access examples](#member-access-operator).
+
 ###Postfix Increment and Decrement Operators
 
 **Syntax**
 
+<!-- GRAMMAR
+postfix-increment-expression:
+  variable '++'
+
+postfix-decrement-expression:
+  variable '--'
+-->
+
 <pre>
-  <i>postfix-increment-expression:</i>
-    <i>unary-expression</i>  ++
+<i id="grammar-postfix-increment-expression">postfix-increment-expression:</i>
+   <i><a href="#grammar-variable">variable</a></i>   ++
 
-  <i>postfix-decrement-expression:</i>
-    <i>unary-expression</i>  --
+<i id="grammar-postfix-decrement-expression">postfix-decrement-expression:</i>
+   <i><a href="#grammar-variable">variable</a></i>   --
 </pre>
-
-**Defined elsewhere**
-
-* [*unary-expression*](#general-4)
 
 **Constraints**
 
@@ -1418,32 +1648,54 @@ $a = array(100, 200); $v = $a[1]++; // old value of $ia[1] (200) is assigned
 
 **Syntax**
 
+<!-- GRAMMAR
+scoped-property-access-expression:
+  scope-resolution-qualifier '::' simple-variable
+
+scoped-call-expression:
+  scope-resolution-qualifier '::' member-name '(' argument-expression-list? ')'
+
+class-constant-access-expression:
+  scope-resolution-qualifier '::' name
+
+scope-resolution-qualifier:
+  relative-scope
+  qualified-name
+  dereferencable-expression
+
+relative-scope:
+  'self'
+  'parent'
+  'static'
+-->
+
 <pre>
-  <i>scope-resolution-expression:</i>
-    <i>scope-resolution-qualifier</i>  ::  <i>member-selection-designator</i>
-    <i>scope-resolution-qualifier</i>  ::  class
+<i id="grammar-scoped-property-access-expression">scoped-property-access-expression:</i>
+   <i><a href="#grammar-scope-resolution-qualifier">scope-resolution-qualifier</a></i>   ::   <i><a href="#grammar-simple-variable">simple-variable</a></i>
 
-  <i>scope-resolution-qualifier:</i>
-    <i>relative-scope</i>
-    <i>qualified-name</i>
-    <i>expression</i>
+<i id="grammar-scoped-call-expression">scoped-call-expression:</i>
+   <i><a href="#grammar-scope-resolution-qualifier">scope-resolution-qualifier</a></i>   ::   <i><a href="#grammar-member-name">member-name</a></i>   (   <i><a href="#grammar-argument-expression-list">argument-expression-list</a></i><sub>opt</sub>   )
 
-  <i>relative-scope</i>:
-    self
-    parent
-    static
+<i id="grammar-class-constant-access-expression">class-constant-access-expression:</i>
+   <i><a href="#grammar-scope-resolution-qualifier">scope-resolution-qualifier</a></i>   ::   <i><a href="09-lexical-structure.md#grammar-name">name</a></i>
+
+<i id="grammar-scope-resolution-qualifier">scope-resolution-qualifier:</i>
+   <i><a href="#grammar-relative-scope">relative-scope</a></i>
+   <i><a href="09-lexical-structure.md#grammar-qualified-name">qualified-name</a></i>
+   <i><a href="#grammar-dereferencable-expression">dereferencable-expression</a></i>
+
+<i id="grammar-relative-scope">relative-scope:</i>
+   self
+   parent
+   static
 </pre>
-
-**Defined elsewhere**
-
-* [*member-selection-designator*](#member-selection-operator)
 
 **Constraints**
 
 *qualified-name* must be the name of a class or interface type.
 
-*expression* must be a value of type string (but not a string literal)
-that contains the name of a class or interface type.
+*expression* must be a value of type string that contains the name
+of a class or interface type.
 
 **Semantics**
 
@@ -1451,22 +1703,23 @@ From inside or outside a class or interface, operator `::` allows the
 selection of a constant. From inside or outside a class, this operator
 allows the selection of a static property, static method, or instance
 method. From within a class, it also allows the selection of an
-overridden property or method. For a property, the value is that of the
-property, and is a modifiable lvalue if *member-selection-designator* is
-a modifiable lvalue.
+overridden property or method.
 
-If *member-selection-designator* is a [*name*](09-lexical-structure.md#names), this operator is accessing
-a class constant. This form can not be used as an lvalue.
+If the *scoped-property-access-expression* form is used, this operator
+is accessing a static property given by *simple-variable* and can be
+used as an lvalue.
 
-If the operator is used as a *postfix-expression* for *function-call-expression*
-then the operator is accessing the method - which, outside of the object context,
+If the *class-constant-access-expression* form is used, this operator is
+is accessing a class constant given by *name*. This form can not be used
+as an lvalue.
+
+If the *scoped-call-expression* form is used, the operator is calling the
+method given by *member-anem*, which, outside of the object context,
 is treated as static method call.
 
 Inside of the object context when `$this` is defined and the called method is not `static` and
-the called class is the same of a parent of the class of `$this`, then the method is
+the called class is the same as a parent of the class of `$this`, then the method call is
 non-static with the same `$this`. Otherwise it is a static method call.
-
-Otherwise, the operator is accessing a static property.
 
 *relative-scope* designates the class with relation to the current class scope.
 From within a class, `self` refers to the same class, `parent` refers to the
@@ -1535,14 +1788,15 @@ class Point
 
 **Syntax**
 
+<!-- GRAMMAR
+exponentiation-expression:
+  expression '**' expression
+-->
+
 <pre>
-  <i>exponentiation-expression:</i>
-    <i>expression</i>  **  <i>expression</i>
+<i id="grammar-exponentiation-expression">exponentiation-expression:</i>
+   <i><a href="#grammar-expression">expression</a></i>   **   <i><a href="#grammar-expression">expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*expression*](#general-6)
 
 **Semantics**
 
@@ -1571,28 +1825,27 @@ for each.  **Examples**
 
 **Syntax**
 
+<!-- GRAMMAR
+unary-expression:
+  postfix-expression
+  prefix-increment-expression
+  prefix-decrement-expression
+  unary-op-expression
+  error-control-expression
+  shell-command-expression
+  cast-expression
+-->
+
 <pre>
-  <i>unary-expression:</i>
-    <i>postfix-expression</i>
-    <i>prefix-increment-expression</i>
-    <i>prefix-decrement-expression</i>
-    <i>unary-op-expression</i>
-    <i>error-control-expression</i>
-    <i>shell-command-expression</i>
-    <i>cast-expression</i>
-    <i>variable-name-creation-expression</i>
+<i id="grammar-unary-expression">unary-expression:</i>
+   <i><a href="#grammar-postfix-expression">postfix-expression</a></i>
+   <i><a href="#grammar-prefix-increment-expression">prefix-increment-expression</a></i>
+   <i><a href="#grammar-prefix-decrement-expression">prefix-decrement-expression</a></i>
+   <i><a href="#grammar-unary-op-expression">unary-op-expression</a></i>
+   <i><a href="#grammar-error-control-expression">error-control-expression</a></i>
+   <i><a href="#grammar-shell-command-expression">shell-command-expression</a></i>
+   <i><a href="#grammar-cast-expression">cast-expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*postfix-expression*](#general-3)
-* [*prefix-increment-expression*](#prefix-increment-and-decrement-operators)
-* [*prefix-decrement-expression*](#prefix-increment-and-decrement-operators)
-* [*unary-op-expression*](#unary-arithmetic-operators)
-* [*error-control-expression*](#error-control-operator)
-* [*shell-command-expression*](#shell-command-operator)
-* [*cast-expression*](#cast-operator)
-* [*variable-name-creation-expression*](#variable-name-creation-operator)
 
 **Semantics**
 
@@ -1602,17 +1855,21 @@ These operators associate right-to-left.
 
 **Syntax**
 
+<!-- GRAMMAR
+prefix-increment-expression:
+  '++' variable
+
+prefix-decrement-expression:
+  '--' variable
+-->
+
 <pre>
-  <i>prefix-increment-expression:</i>
-    ++ <i>unary-expression</i>
+<i id="grammar-prefix-increment-expression">prefix-increment-expression:</i>
+   ++   <i><a href="#grammar-variable">variable</a></i>
 
-  <i>prefix-decrement-expression:</i>
-    -- <i>unary-expression</i>
+<i id="grammar-prefix-decrement-expression">prefix-decrement-expression:</i>
+   --   <i><a href="#grammar-variable">variable</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*unary-expression*](#general-4)
 
 **Constraints**
 
@@ -1712,17 +1969,21 @@ $a = "^^Z^^"; ++$a; // $a is now "^^Z^^"
 
 **Syntax**
 
+<!-- GRAMMAR
+unary-op-expression:
+  unary-operator cast-expression
+
+unary-operator: one of
+  '+' '-' '!' '~'
+-->
+
 <pre>
-  <i>unary-op-expression:</i>
-    <i>unary-operator cast-expression</i>
+<i id="grammar-unary-op-expression">unary-op-expression:</i>
+   <i><a href="#grammar-unary-operator">unary-operator</a></i>   <i><a href="#grammar-cast-expression">cast-expression</a></i>
 
-  <i>unary-operator: one of</i>
-    +  -  !  ~
+<i id="grammar-unary-operator">unary-operator: one of</i>
+   +   -   !   ~
 </pre>
-
-**Defined elsewhere**
-
-* [*cast-expression*](#cast-operator)
 
 **Constraints**
 
@@ -1803,14 +2064,15 @@ $s = "\x86\x97"; $s = ~$s; // $s is "yh"
 
 **Syntax**
 
+<!-- GRAMMAR
+error-control-expression:
+  '@' expression
+-->
+
 <pre>
-  <i>error-control-expression:</i>
-    @   <i>expression</i>
+<i id="grammar-error-control-expression">error-control-expression:</i>
+   @   <i><a href="#grammar-expression">expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*expression*](#general-6)
 
 **Semantics**
 
@@ -1859,17 +2121,18 @@ $x = $tmp;
 
 **Syntax**
 
+<!-- GRAMMAR
+shell-command-expression:
+  '`' dq-char-sequence? '`'
+-->
+
 <pre>
-  <i>shell-command-expression:</i>
-    `  <i>dq-char-sequence<sub>opt</sub></i>  `
+<i id="grammar-shell-command-expression">shell-command-expression:</i>
+   `   <i><a href="09-lexical-structure.md#grammar-dq-char-sequence">dq-char-sequence</a></i><sub>opt</sub>   `
 </pre>
 
 where \` is the GRAVE ACCENT character U+0060, commonly referred to as a
 *backtick*.
-
-**Defined elsewhere**
-
-* [*dq-char-sequence*](09-lexical-structure.md#double-quoted-string-literals)
 
 **Semantics**
 
@@ -1896,19 +2159,25 @@ $result = `$d {$f}`;      // result is the output of command dir *.*
 
 **Syntax**
 
+<!-- GRAMMAR
+cast-expression:
+  unary-expression
+  '(' cast-type ')' expression
+
+cast-type: one of
+  'array' 'binary' 'bool' 'boolean' 'double' 'int' 'integer' 'float' 'object'
+  'real' 'string' 'unset'
+-->
+
 <pre>
-  <i>cast-expression:</i>
-    <i>unary-expression</i>
-    (  <i>cast-type</i>  ) <i>expression</i>
+<i id="grammar-cast-expression">cast-expression:</i>
+   <i><a href="#grammar-unary-expression">unary-expression</a></i>
+   (   <i><a href="#grammar-cast-type">cast-type</a></i>   )   <i><a href="#grammar-expression">expression</a></i>
 
-  <i>cast-type: one of</i>
-    array  binary  bool  boolean  double  int  integer  float  object
-    real  string  unset
+<i id="grammar-cast-type">cast-type: one of</i>
+   array   binary   bool   boolean   double   int   integer   float   object
+   real   string   unset
 </pre>
-
-**Defined elsewhere**
-
-* [*unary-expression*](#general-4)
 
 **Semantics**
 
@@ -1947,92 +2216,35 @@ A *cast-type* of `unset` always results in a value of `NULL`. (This use of
 (int)(float)"123.87E3" // results in the int 123870
 ```
 
-###Variable-Name Creation Operator
-
-**Syntax**
-
-<pre>
-  <i>variable-name-creation-expression:</i>
-    $   <i>expression</i>
-    $  {  <i>expression</i>  }
-</pre>
-
-**Defined elsewhere**
-
-* [*expression*](#general-6)
-
-**Constraints**
-
-In the non-brace form, *expression* must be a
-*variable-name-creation-expression* or a *variable-name* that designates
-a scalar value or an object convertible to string.
-
-In the brace form, *expression* must be a
-*variable-name-creation-expression* or an expression that designates a
-scalar value or an object convertible to string.
-
-**Semantics**
-
-The result of this operator is a variable name spelled using the string
-representation of the value of *expression* even though such a name
-might not be permitted as a [variable-name](09-lexical-structure.md#names) source code token.
-
-The operator will consume the following *variable-name-creation-expression* and *variable-name* tokens, and
-also tokens representing [subscript operator](#subscript-operator).
-
-In the absense of braces, the variable is parsed with left-to-right semantics, i.e., in example `$$o->pr`
-the expression is treated as `${$o}->pr`, i.e. it is parsed as "take the value of $o, consider it a variable name,
-and assuming the variable with this name is an object take the property 'pr' of it".
-
-**Examples**
-
-```PHP
-$color = "red";
-$$color = 123;    // equivalent to $red = 123
-// -----------------------------------------
-$x = 'ab'; $ab = 'fg'; $fg = 'xy';
-$$ $ $x = 'Hello';  // equivalent to $xy = Hello
-// -----------------------------------------
-$v1 = 3;
-$$v1 = 22;        // equivalent to ${3} = 22, variable name is "3"
-$v2 = 9.543;
-$$v2 = TRUE;    // equivalent to ${9.543} = TRUE
-$v3 = NULL;
-$$v3 = "abc";   // equivalent to ${NULL} = "abc", here we create a variable with empty name
-// -----------------------------------------
-function f1 () { return 2.5; }
-${1 + f1()} = 1000;   // equivalent to ${3.5} = 1000
-// -----------------------------------------
-$v = array(10, 20); $a = 'v';
-$$a[0] = 5;       // $v is [5, 20], since $$a is on the left of [] so it gets the first shot
-$v = array(10, 20); $a = 'v';
-${$a[0]} = 5;   // $v is 5
-$v = array(10, 20); $a = 'v';
-${$a}[0] = 5;   // $ gets first shot at $a, $v is [5, 20]
-```
-
 ##`instanceof` Operator
 
 **Syntax**
 
+<!-- GRAMMAR
+instanceof-expression:
+  unary-expression
+  instanceof-subject 'instanceof' instanceof-type-designator
+
+instanceof-subject:
+  expression
+
+instanceof-type-designator:
+  qualified-name
+  expression
+-->
+
 <pre>
-  <i>instanceof-expression:</i>
-    <i>unary-expression</i>
-    <i>instanceof-subject</i>  instanceof   <i>instanceof-type-designator</i>
+<i id="grammar-instanceof-expression">instanceof-expression:</i>
+   <i><a href="#grammar-unary-expression">unary-expression</a></i>
+   <i><a href="#grammar-instanceof-subject">instanceof-subject</a></i>   instanceof   <i><a href="#grammar-instanceof-type-designator">instanceof-type-designator</a></i>
 
-  <i>instanceof-subject:</i>
-    <i>expression</i>
+<i id="grammar-instanceof-subject">instanceof-subject:</i>
+   <i><a href="#grammar-expression">expression</a></i>
 
-  <i>instanceof-type-designator:</i>
-    <i>qualified-name</i>
-    <i>expression</i>
+<i id="grammar-instanceof-type-designator">instanceof-type-designator:</i>
+   <i><a href="09-lexical-structure.md#grammar-qualified-name">qualified-name</a></i>
+   <i><a href="#grammar-expression">expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*unary-expression*](#general-4)
-* [*expression*](#general-6)
-* [*qualified-name*](09-lexical-structure.md#names)
 
 **Constraints**
 
@@ -2084,17 +2296,21 @@ var_dump($e2 instanceof $e1);      // TRUE
 
 **Syntax**
 
+<!-- GRAMMAR
+multiplicative-expression:
+  instanceof-expression
+  multiplicative-expression '*' instanceof-expression
+  multiplicative-expression '/' instanceof-expression
+  multiplicative-expression '%' instanceof-expression
+-->
+
 <pre>
-  <i>multiplicative-expression:</i>
-    <i>instanceof-expression</i>
-    <i>multiplicative-expression</i>  *  <i>instanceof-expression</i>
-    <i>multiplicative-expression</i>  /  <i>instanceof-expression</i>
-    <i>multiplicative-expression</i>  %  <i>instanceof-expression</i>
+<i id="grammar-multiplicative-expression">multiplicative-expression:</i>
+   <i><a href="#grammar-instanceof-expression">instanceof-expression</a></i>
+   <i><a href="#grammar-multiplicative-expression">multiplicative-expression</a></i>   *   <i><a href="#grammar-instanceof-expression">instanceof-expression</a></i>
+   <i><a href="#grammar-multiplicative-expression">multiplicative-expression</a></i>   /   <i><a href="#grammar-instanceof-expression">instanceof-expression</a></i>
+   <i><a href="#grammar-multiplicative-expression">multiplicative-expression</a></i>   %   <i><a href="#grammar-instanceof-expression">instanceof-expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*instanceof-expression*](#instanceof-operator)
 
 **Constraints**
 
@@ -2155,17 +2371,21 @@ These operators associate left-to-right.
 
 **Syntax**
 
+<!-- GRAMMAR
+additive-expression:
+  multiplicative-expression
+  additive-expression '+' multiplicative-expression
+  additive-expression '-' multiplicative-expression
+  additive-expression '.' multiplicative-expression
+-->
+
 <pre>
-  <i>additive-expression:</i>
-    <i>multiplicative-expression</i>
-    <i>additive-expression</i>  +  <i>multiplicative-expression</i>
-    <i>additive-expression</i>  -  <i>multiplicative-expression</i>
-    <i>additive-expression</i>  .  <i>multiplicative-expression</i>
+<i id="grammar-additive-expression">additive-expression:</i>
+   <i><a href="#grammar-multiplicative-expression">multiplicative-expression</a></i>
+   <i><a href="#grammar-additive-expression">additive-expression</a></i>   +   <i><a href="#grammar-multiplicative-expression">multiplicative-expression</a></i>
+   <i><a href="#grammar-additive-expression">additive-expression</a></i>   -   <i><a href="#grammar-multiplicative-expression">multiplicative-expression</a></i>
+   <i><a href="#grammar-additive-expression">additive-expression</a></i>   .   <i><a href="#grammar-multiplicative-expression">multiplicative-expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*multiplicative-expression*](#multiplicative-operators)
 
 **Constraints**
 
@@ -2229,16 +2449,19 @@ TRUE . NULL;      // string with value "1"
 
 **Syntax**
 
+<!-- GRAMMAR
+shift-expression:
+  additive-expression
+  shift-expression '<<' additive-expression
+  shift-expression '>>' additive-expression
+-->
+
 <pre>
-  <i>shift-expression:</i>
-    <i>additive-expression</i>
-    <i>shift-expression</i>  &lt;&lt;  <i>additive-expression</i>
-    <i>shift-expression</i>  &gt;&gt;  <i>additive-expression</i>
+<i id="grammar-shift-expression">shift-expression:</i>
+   <i><a href="#grammar-additive-expression">additive-expression</a></i>
+   <i><a href="#grammar-shift-expression">shift-expression</a></i>   &lt;&lt;   <i><a href="#grammar-additive-expression">additive-expression</a></i>
+   <i><a href="#grammar-shift-expression">shift-expression</a></i>   &gt;&gt;   <i><a href="#grammar-additive-expression">additive-expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*additive-expression*](#additive-operators)
 
 **Constraints**
 
@@ -2289,19 +2512,25 @@ These operators associate left-to-right.
 
 **Syntax**
 
+<!-- GRAMMAR
+relational-expression:
+  shift-expression
+  relational-expression '<' shift-expression
+  relational-expression '>' shift-expression
+  relational-expression '<=' shift-expression
+  relational-expression '>=' shift-expression
+  relational-expression '<=>' shift-expression
+-->
+
 <pre>
-  <i>relational-expression:</i>
-    <i>shift-expression</i>
-    <i>relational-expression</i>  &lt;   <i>shift-expression</i>
-    <i>relational-expression</i>  &gt;   <i>shift-expression</i>
-    <i>relational-expression</i>  &lt;=  <i>shift-expression</i>
-    <i>relational-expression</i>  &gt;=  <i>shift-expression</i>
-    <i>relational-expression</i>  &lt;=&gt; <i>shift-expression</i>
+<i id="grammar-relational-expression">relational-expression:</i>
+   <i><a href="#grammar-shift-expression">shift-expression</a></i>
+   <i><a href="#grammar-relational-expression">relational-expression</a></i>   &lt;   <i><a href="#grammar-shift-expression">shift-expression</a></i>
+   <i><a href="#grammar-relational-expression">relational-expression</a></i>   &gt;   <i><a href="#grammar-shift-expression">shift-expression</a></i>
+   <i><a href="#grammar-relational-expression">relational-expression</a></i>   &lt;=   <i><a href="#grammar-shift-expression">shift-expression</a></i>
+   <i><a href="#grammar-relational-expression">relational-expression</a></i>   &gt;=   <i><a href="#grammar-shift-expression">shift-expression</a></i>
+   <i><a href="#grammar-relational-expression">relational-expression</a></i>   &lt;=&gt;   <i><a href="#grammar-shift-expression">shift-expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*shift-expression*](#bitwise-shift-operators)
 
 **Semantics**
 
@@ -2419,19 +2648,25 @@ function order_func($a, $b) {
 
 **Syntax**
 
+<!-- GRAMMAR
+equality-expression:
+  relational-expression
+  equality-expression '==' relational-expression
+  equality-expression '!=' relational-expression
+  equality-expression '<>' relational-expression
+  equality-expression '===' relational-expression
+  equality-expression '!==' relational-expression
+-->
+
 <pre>
-  <i>equality-expression:</i>
-    <i>relational-expression</i>
-    <i>equality-expression</i>  ==  <i>relational-expression</i>
-    <i>equality-expression</i>  !=  <i>relational-expression</i>
-    <i>equality-expression</i>  &lt;&gt;  <i>relational-expression</i>
-    <i>equality-expression</i>  ===  <i>relational-expression</i>
-    <i>equality-expression</i>  !==  <i>relational-expression</i>
+<i id="grammar-equality-expression">equality-expression:</i>
+   <i><a href="#grammar-relational-expression">relational-expression</a></i>
+   <i><a href="#grammar-equality-expression">equality-expression</a></i>   ==   <i><a href="#grammar-relational-expression">relational-expression</a></i>
+   <i><a href="#grammar-equality-expression">equality-expression</a></i>   !=   <i><a href="#grammar-relational-expression">relational-expression</a></i>
+   <i><a href="#grammar-equality-expression">equality-expression</a></i>   &lt;&gt;   <i><a href="#grammar-relational-expression">relational-expression</a></i>
+   <i><a href="#grammar-equality-expression">equality-expression</a></i>   ===   <i><a href="#grammar-relational-expression">relational-expression</a></i>
+   <i><a href="#grammar-equality-expression">equality-expression</a></i>   !==   <i><a href="#grammar-relational-expression">relational-expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*relational-expression*](#relational-operators)
 
 **Semantics**
 
@@ -2477,15 +2712,17 @@ TRUE !== 100  // result has value TRUE
 
 **Syntax**
 
+<!-- GRAMMAR
+bitwise-AND-expression:
+  equality-expression
+  bitwise-AND-expression '&' equality-expression
+-->
+
 <pre>
-  <i>bitwise-AND-expression:</i>
-    <i>equality-expression</i>
-    <i>bit-wise-AND-expression</i>  &  <i>equality-expression</i>
+<i id="grammar-bitwise-AND-expression">bitwise-AND-expression:</i>
+   <i><a href="#grammar-equality-expression">equality-expression</a></i>
+   <i><a href="#grammar-bitwise-AND-expression">bitwise-AND-expression</a></i>   &amp;   <i><a href="#grammar-equality-expression">equality-expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*equality-expression*](#equality-operators)
 
 **Constraints**
 
@@ -2522,15 +2759,17 @@ $uLetter = $lLetter & ~0x20;  // clear the 6th bit to make letter 'S'
 
 **Syntax**
 
+<!-- GRAMMAR
+bitwise-exc-OR-expression:
+  bitwise-AND-expression
+  bitwise-exc-OR-expression '^' bitwise-AND-expression
+-->
+
 <pre>
-  <i>bitwise-exc-OR-expression:</i>
-    <i>bitwise-AND-expression</i>
-    <i>bitwise-exc-OR-expression</i>  ^  <i>bitwise-AND-expression</i>
+<i id="grammar-bitwise-exc-OR-expression">bitwise-exc-OR-expression:</i>
+   <i><a href="#grammar-bitwise-AND-expression">bitwise-AND-expression</a></i>
+   <i><a href="#grammar-bitwise-exc-OR-expression">bitwise-exc-OR-expression</a></i>   ^   <i><a href="#grammar-bitwise-AND-expression">bitwise-AND-expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*bitwise-AND-expression*](#bitwise-and-operator)
 
 **Constraints**
 
@@ -2569,15 +2808,17 @@ $v1 = $v1 ^ $v2;    // $v1 is now -987, and $v2 is now 1234
 
 **Syntax**
 
+<!-- GRAMMAR
+bitwise-inc-OR-expression:
+  bitwise-exc-OR-expression
+  bitwise-inc-OR-expression '|' bitwise-exc-OR-expression
+-->
+
 <pre>
-  <i>bitwise-inc-OR-expression:</i>
-    <i>bitwise-exc-OR-expression</i>
-    <i>bitwise-inc-OR-expression</i>  |  <i>bitwise-exc-OR-expression</i>
+<i id="grammar-bitwise-inc-OR-expression">bitwise-inc-OR-expression:</i>
+   <i><a href="#grammar-bitwise-exc-OR-expression">bitwise-exc-OR-expression</a></i>
+   <i><a href="#grammar-bitwise-inc-OR-expression">bitwise-inc-OR-expression</a></i>   |   <i><a href="#grammar-bitwise-exc-OR-expression">bitwise-exc-OR-expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*bitwise-exc-OR-expression*](#bitwise-exclusive-or-operator)
 
 **Constraints**
 
@@ -2614,15 +2855,17 @@ $lLetter = $upCaseLetter | 0x20;  // set the 6th bit to make letter 'a'
 
 **Syntax**
 
+<!-- GRAMMAR
+logical-AND-expression-1:
+  bitwise-inc-OR-expression
+  logical-AND-expression-1 '&&' bitwise-inc-OR-expression
+-->
+
 <pre>
-  <i>logical-AND-expression-1:</i>
-    <i>bitwise-incl-OR-expression</i>
-    <i>logical-AND-expression-1</i>  &&  <i>bitwise-inc-OR-expression</i>
+<i id="grammar-logical-AND-expression-1">logical-AND-expression-1:</i>
+   <i><a href="#grammar-bitwise-inc-OR-expression">bitwise-inc-OR-expression</a></i>
+   <i><a href="#grammar-logical-AND-expression-1">logical-AND-expression-1</a></i>   &amp;&amp;   <i><a href="#grammar-bitwise-inc-OR-expression">bitwise-inc-OR-expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*bitwise-incl-OR-expression*](#bitwise-inclusive-or-operator)
 
 **Semantics**
 
@@ -2643,15 +2886,17 @@ if ($month > 1 && $month <= 12) ...
 
 **Syntax**
 
+<!-- GRAMMAR
+logical-inc-OR-expression-1:
+  logical-AND-expression-1
+  logical-inc-OR-expression-1 '||' logical-AND-expression-1
+-->
+
 <pre>
-  <i>logical-inc-OR-expression-1:</i>
-    <i>logical-AND-expression-1</i>
-    <i>logical-inc-OR-expression-1</i>  ||  <i>logical-AND-expression-1</i>
+<i id="grammar-logical-inc-OR-expression-1">logical-inc-OR-expression-1:</i>
+   <i><a href="#grammar-logical-AND-expression-1">logical-AND-expression-1</a></i>
+   <i><a href="#grammar-logical-inc-OR-expression-1">logical-inc-OR-expression-1</a></i>   ||   <i><a href="#grammar-logical-AND-expression-1">logical-AND-expression-1</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*logical-exc-OR-expression*](#bitwise-exclusive-or-operator)
 
 **Semantics**
 
@@ -2669,16 +2914,17 @@ if ($month < 1 || $month > 12) ...
 
 **Syntax**
 
+<!-- GRAMMAR
+conditional-expression:
+  logical-inc-OR-expression-1
+  logical-inc-OR-expression-1 '?' expression? ':' conditional-expression
+-->
+
 <pre>
-  <i>conditional-expression:</i>
-    <i>logical-inc-OR-expression-1</i>
-    <i>logical-inc-OR-expression-1</i>  ?  <i>expression<sub>opt</sub></i>  :  <i>conditional-expression</i>
+<i id="grammar-conditional-expression">conditional-expression:</i>
+   <i><a href="#grammar-logical-inc-OR-expression-1">logical-inc-OR-expression-1</a></i>
+   <i><a href="#grammar-logical-inc-OR-expression-1">logical-inc-OR-expression-1</a></i>   ?   <i><a href="#grammar-expression">expression</a></i><sub>opt</sub>   :   <i><a href="#grammar-conditional-expression">conditional-expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*logical-OR-expression*](#logical-inclusive-or-operator-form-1)
-* [*expression*](#general-6)
 
 **Semantics**
 Given the expression `e1 ? e2 : e3`, `e1` is evaluated first and [converted to `bool`](08-conversions.md#converting-to-boolean-type) if it has another type.
@@ -2715,15 +2961,15 @@ function factorial($int)
 
 **Syntax**
 
+<!-- GRAMMAR
+coalesce-expression:
+  logical-inc-OR-expression-1 '??' expression
+-->
+
 <pre>
-  <i>coalesce-expression:</i>
-    <i>logical-inc-OR-expression</i>  ??  <i>expression</i>
+<i id="grammar-coalesce-expression">coalesce-expression:</i>
+   <i><a href="#grammar-logical-inc-OR-expression-1">logical-inc-OR-expression-1</a></i>   ??   <i><a href="#grammar-expression">expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*logical-OR-expression*](#logical-inclusive-or-operator-form-1)
-* [*expression*](#general-6)
 
 **Semantics**
 
@@ -2765,22 +3011,23 @@ var_dump(true ?? foo()); // outputs bool(true), "executed!" does not appear as i
 
 **Syntax**
 
+<!-- GRAMMAR
+assignment-expression:
+  conditional-expression
+  coalesce-expression
+  simple-assignment-expression
+  byref-assignment-expression
+  compound-assignment-expression
+-->
+
 <pre>
-  <i>assignment-expression:</i>
-    <i>conditional-expression</i>
-    <i>coalesce-expression</i>
-    <i>simple-assignment-expression</i>
-    <i>byref-assignment-expression</i>
-    <i>compound-assignment-expression</i>
+<i id="grammar-assignment-expression">assignment-expression:</i>
+   <i><a href="#grammar-conditional-expression">conditional-expression</a></i>
+   <i><a href="#grammar-coalesce-expression">coalesce-expression</a></i>
+   <i><a href="#grammar-simple-assignment-expression">simple-assignment-expression</a></i>
+   <i><a href="#grammar-byref-assignment-expression">byref-assignment-expression</a></i>
+   <i><a href="#grammar-compound-assignment-expression">compound-assignment-expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*conditional-expression*](#conditional-operator)
-* [*simple-assignment-expression*](#simple-assignment)
-* [*byref-assignment-expression*](#byref-assignment)
-* [*compound-assignment-expression*](#compound-assignment)
-* [*coalesce-expression*](#coalesce-operator)
 
 **Constraints**
 
@@ -2795,15 +3042,17 @@ These operators associate right-to-left.
 
 **Syntax**
 
+<!-- GRAMMAR
+simple-assignment-expression:
+  variable '=' assignment-expression
+  list-intrinsic '=' assignment-expression
+-->
+
 <pre>
-  <i>simple-assignment-expression:</i>
-    <i>unary-expression</i>  =  <i>assignment-expression</i>
+<i id="grammar-simple-assignment-expression">simple-assignment-expression:</i>
+   <i><a href="#grammar-variable">variable</a></i>   =   <i><a href="#grammar-assignment-expression">assignment-expression</a></i>
+   <i><a href="#grammar-list-intrinsic">list-intrinsic</a></i>   =   <i><a href="#grammar-assignment-expression">assignment-expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*unary-expression*](#general-4)
-* [*assignment-expression*](#general-5)
 
 **Constraints**
 
@@ -2815,7 +3064,7 @@ must have type `string`.
 
 If *assignment-expression* designates an expression having value type,
 see  [assignment for scalar types](04-basic-concepts.md#byref-assignment-for-scalar-types-with-local-variables)
-If *assignment-expression* designates an expression having handle type, see [assignment for object and resource types](04-basic-concepts.md#value-assignment-of-object-and-resource-types-to-a-local-variable).
+If *assignment-expression* designates an expression having handle type, see [assignment for object and resource types](04-basic-concepts.md#value-assignment-of-objects-to-a-local-variable).
 If *assignment-expression* designates an expression having array type, see
 [assignment of array types](04-basic-concepts.md#value-assignment-of-array-types-to-local-variables).
 
@@ -2863,19 +3112,17 @@ $a = new C; // make $a point to the allocated object
 
 **Syntax**
 
+<!-- GRAMMAR
+byref-assignment-expression:
+  variable '=' '&' assignment-expression
+-->
+
 <pre>
-  <i>byref-assignment-expression:</i>
-    <i>unary-expression</i>  =  &  <i>assignment-expression</i>
+<i id="grammar-byref-assignment-expression">byref-assignment-expression:</i>
+   <i><a href="#grammar-variable">variable</a></i>   =   &amp;   <i><a href="#grammar-assignment-expression">assignment-expression</a></i>
 </pre>
 
-**Defined elsewhere**
-
-* [*unary-expression*](#general-4)
-* [*assignment-expression*](#general-5)
-
 **Constraints**
-
-*unary-expression* must designate a variable.
 
 *assignment-expression* must be an lvalue or a call to a function that
 returns a value byRef.
@@ -2907,18 +3154,21 @@ $b =& g2();     // make $b an alias to "xxx"
 
 **Syntax**
 
+<!-- GRAMMAR
+compound-assignment-expression:
+  variable compound-assignment-operator assignment-expression
+
+compound-assignment-operator: one of
+  '**=' '*=' '/=' '%=' '+=' '-=' '.=' '<<=' '>>=' '&=' '^=' '|='
+-->
+
 <pre>
-  <i>compound-assignment-expression:</i>
-    <i>unary-expression   compound-assignment-operator   assignment-expression</i>
+<i id="grammar-compound-assignment-expression">compound-assignment-expression:</i>
+   <i><a href="#grammar-variable">variable</a></i>   <i><a href="#grammar-compound-assignment-operator">compound-assignment-operator</a></i>   <i><a href="#grammar-assignment-expression">assignment-expression</a></i>
 
-  <i>compound-assignment-operator: one of</i>
-    **=  *=  /=  %=  +=  -=  .=  <<=  >>=  &=  ^=  |=
+<i id="grammar-compound-assignment-operator">compound-assignment-operator: one of</i>
+   **=   *=   /=   %=   +=   -=   .=   &lt;&lt;=   &gt;&gt;=   &amp;=   ^=   |=
 </pre>
-
-**Defined elsewhere**
-
-* [*unary-expression*](#general-4)
-* [*assignment-expression*](#general-5)
 
 **Constraints**
 
@@ -2945,15 +3195,17 @@ $a[$i++] += 50; // $a[1] = 250, $i → 2
 
 **Syntax**
 
+<!-- GRAMMAR
+logical-AND-expression-2:
+  assignment-expression
+  logical-AND-expression-2 'and' assignment-expression
+-->
+
 <pre>
-  <i>logical-AND-expression-2:</i>
-    <i>assignment-expression</i>
-    <i>logical-AND-expression-2</i>  and  <i>assignment-expression</i>
+<i id="grammar-logical-AND-expression-2">logical-AND-expression-2:</i>
+   <i><a href="#grammar-assignment-expression">assignment-expression</a></i>
+   <i><a href="#grammar-logical-AND-expression-2">logical-AND-expression-2</a></i>   and   <i><a href="#grammar-assignment-expression">assignment-expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*assignment-expression*](#general-5)
 
 **Semantics**
 
@@ -2964,15 +3216,17 @@ same semantics as [operator `&&`](#logical-and-operator-form-1).
 
 **Syntax**
 
+<!-- GRAMMAR
+logical-exc-OR-expression:
+  logical-AND-expression-2
+  logical-exc-OR-expression 'xor' logical-AND-expression-2
+-->
+
 <pre>
-  <i>logical-exc-OR-expression:</i>
-    <i>logical-AND-expression-2</i>
-    <i>logical-exc-OR-expression</i>  xor  <i>logical-AND-expression-2</i>
+<i id="grammar-logical-exc-OR-expression">logical-exc-OR-expression:</i>
+   <i><a href="#grammar-logical-AND-expression-2">logical-AND-expression-2</a></i>
+   <i><a href="#grammar-logical-exc-OR-expression">logical-exc-OR-expression</a></i>   xor   <i><a href="#grammar-logical-AND-expression-2">logical-AND-expression-2</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*logical-AND-expression*](#logical-and-operator-form-2)
 
 **Semantics**
 
@@ -2996,15 +3250,17 @@ f($i++) xor g($i) // the sequence point makes this well-defined
 
 **Syntax**
 
+<!-- GRAMMAR
+logical-inc-OR-expression-2:
+  logical-exc-OR-expression
+  logical-inc-OR-expression-2 'or' logical-exc-OR-expression
+-->
+
 <pre>
-  <i>logical-inc-OR-expression-2:</i>
-    <i>logical-exc-OR-expression</i>
-    <i>logical-inc-OR-expression-2</i>  or  <i>logical-exc-OR-expression</i>
+<i id="grammar-logical-inc-OR-expression-2">logical-inc-OR-expression-2:</i>
+   <i><a href="#grammar-logical-exc-OR-expression">logical-exc-OR-expression</a></i>
+   <i><a href="#grammar-logical-inc-OR-expression-2">logical-inc-OR-expression-2</a></i>   or   <i><a href="#grammar-logical-exc-OR-expression">logical-exc-OR-expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*logical-exc-OR-expression*](#logical-exclusive-or-operator)
 
 **Semantics**
 
@@ -3015,18 +3271,19 @@ same semantics as [operator `||`](#logical-inclusive-or-operator-form-1).
 
 **Syntax**
 
+<!-- GRAMMAR
+yield-expression:
+  logical-inc-OR-expression-2
+  'yield' array-element-initializer
+  'yield from' expression
+-->
+
 <pre>
-  <i>yield-expression:</i>
-    <i>logical-inc-OR-expression-2</i>
-    yield  <i>array-element-initializer</i>
-    yield from  <i>expression</i>
+<i id="grammar-yield-expression">yield-expression:</i>
+   <i><a href="#grammar-logical-inc-OR-expression-2">logical-inc-OR-expression-2</a></i>
+   yield   <i><a href="#grammar-array-element-initializer">array-element-initializer</a></i>
+   yield from   <i><a href="#grammar-expression">expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*logical-inc-OR-expression*](#logical-inclusive-or-operator-form-2)
-* [*array-element-initializer*](#array-creation-operator)
-* [*expression*](#script-inclusion-operators)
 
 **Semantics**
 
@@ -3144,22 +3401,23 @@ foreach ($g as $yielded) {
 
 **Syntax**
 
+<!-- GRAMMAR
+expression:
+  yield-expression
+  include-expression
+  include-once-expression
+  require-expression
+  require-once-expression
+-->
+
 <pre>
-  <i>expression:</i>
-    <i>yield-expression</i>
-    <i>include-expression</i>
-    <i>include-once-expression</i>
-    <i>require-expression</i>
-    <i>require-once-expression</i>
+<i id="grammar-expression">expression:</i>
+   <i><a href="#grammar-yield-expression">yield-expression</a></i>
+   <i><a href="#grammar-include-expression">include-expression</a></i>
+   <i><a href="#grammar-include-once-expression">include-once-expression</a></i>
+   <i><a href="#grammar-require-expression">require-expression</a></i>
+   <i><a href="#grammar-require-once-expression">require-once-expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*yield-expression*](#yield-operator)
-* [*include-expression*](#the-include-operator)
-* [*include-once-expression*](#the-include_once-operator)
-* [*require-expression*](#the-require-operator)
-* [*require-once-expression*](#the-require_once-operator)
 
 **Semantics**
 
@@ -3318,15 +3576,15 @@ echo $x;                  // hello
 
 **Syntax**
 
+<!-- GRAMMAR
+include-expression:
+  'include' expression
+-->
+
 <pre>
-  <i>include-expression:</i>
-    include  (  <i>expression</i>  )
-    include  <i>expression</i>
+<i id="grammar-include-expression">include-expression:</i>
+   include   <i><a href="#grammar-expression">expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*expression*](#general-6)
 
 **Constraints**
 
@@ -3370,15 +3628,15 @@ If ((include 'Positions.php') == 1) ...
 
 **Syntax**
 
+<!-- GRAMMAR
+include-once-expression:
+  'include_once' expression
+-->
+
 <pre>
-  <i>include-once-expression:</i>
-    include_once  (  <i>expression</i>  )
-    include_once  <i>expression</i>
+<i id="grammar-include-once-expression">include-once-expression:</i>
+   include_once   <i><a href="#grammar-expression">expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*expression*](#general-6)
 
 **Semantics**
 
@@ -3418,15 +3676,15 @@ $c1 = new Circle(9, 7, 2.4);
 
 **Syntax**
 
+<!-- GRAMMAR
+require-expression:
+  'require' expression
+-->
+
 <pre>
-  <i>require-expression:</i>
-    require  (  <i>expression</i>  )
-    require  <i>expression</i>
+<i id="grammar-require-expression">require-expression:</i>
+   require   <i><a href="#grammar-expression">expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*expression*](#general-6)
 
 **Semantics**
 
@@ -3438,15 +3696,15 @@ produces a fatal error.
 
 **Syntax**
 
+<!-- GRAMMAR
+require-once-expression:
+  'require_once' expression
+-->
+
 <pre>
-  <i>require-once-expression:</i>
-    require_once  (  <i>expression</i>  )
-    require_once  <i>expression</i>
+<i id="grammar-require-once-expression">require-once-expression:</i>
+   require_once   <i><a href="#grammar-expression">expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*expression*](#general-6)
 
 **Semantics**
 
@@ -3465,27 +3723,30 @@ and relative path) still are considered the same file.
 
 **Syntax**
 
+<!-- GRAMMAR
+constant-expression:
+  expression
+-->
+
 <pre>
-  <i>constant-expression:</i>
-    <i>array-creation-expression</i>
-    <i>expression</i>
+<i id="grammar-constant-expression">constant-expression:</i>
+   <i><a href="#grammar-expression">expression</a></i>
 </pre>
-
-**Defined elsewhere**
-
-* [*array-creation-expression*](#array-creation-operator)
-* [*expression*](#general-6)
 
 **Constraints**
 
-All of the *element-key* and *element-value* elements in
-[*array-creation-expression*](#array-creation-operator) must be literals.
+The *expression* may only use the following syntactic elements:
 
-*expression* must have a scalar type, and be a literal or the name of a [c-constant](06-constants.md#general).
+* [Literals](#literals). String literals must not use interpolation.
+* [Array creation expressions](#array-creation-operator).
+* Unary operators `+`, `-`, `~`, `!`.
+* Binary operators `+`, `-`, `*`, `/`, `%`, `.`, `**`, `^`, `|`, `&`,
+  `<`, `>`, `<=`, `>=`, `<=>`, `==`, `!=`, `===`, `!==`, `&&`, `||`, `??`.
+* [Conditional expressions](#conditional-operator).
+* [Subscript expressions](#subscript-operator).
+* [Constant access expressions](#constant-access-expression).
+* [Class constant access expressions](#scope-resolution-operator).
 
 **Semantics**
 
-A *constant-expression* is the value of a c-constant. A *constant-expression*
-is required in several contexts, such as in initializer values in a
-[*const-declaration*](14-classes.md#constants) and default initial values in a [function
-definition](13-functions.md#function-definitions).
+A *constant-expression* evaluates to the value of the constituent *expression*.

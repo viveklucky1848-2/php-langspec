@@ -3,23 +3,42 @@
 A PHP *program* consists of one or more source files, known formally as
 *scripts*.
 
+<!-- GRAMMAR
+script:
+  script-section
+  script script-section
+
+script-section:
+  text? start-tag statement-list? end-tag? text?
+
+start-tag:
+  '<?php'
+  '<?='
+
+end-tag:
+  '?>'
+
+text:
+  "arbitrary text not containing any of" start-tag "sequences"
+-->
+
 <pre>
-<i>script:</i>
-<i> script-section</i>
-<i> script   script-section</i>
+<i id="grammar-script">script:</i>
+   <i><a href="#grammar-script-section">script-section</a></i>
+   <i><a href="#grammar-script">script</a></i>   <i><a href="#grammar-script-section">script-section</a></i>
 
-<i>script-section:</i>
-  <i> text<sub>opt</sub></i> <i>start-tag</i> <i>statement-list<sub>opt</sub></i> <i>end-tag</i><sub>opt</sub> <i>text<sub>opt</sub></i>
+<i id="grammar-script-section">script-section:</i>
+   <i><a href="#grammar-text">text</a></i><sub>opt</sub>   <i><a href="#grammar-start-tag">start-tag</a></i>   <i><a href="11-statements.md#grammar-statement-list">statement-list</a></i><sub>opt</sub>   <i><a href="#grammar-end-tag">end-tag</a></i><sub>opt</sub>   <i><a href="#grammar-text">text</a></i><sub>opt</sub>
 
-<i>start-tag:</i>
-  &lt;?php
-  &lt;?=
+<i id="grammar-start-tag">start-tag:</i>
+   &lt;?php
+   &lt;?=
 
-<i>end-tag:</i>
-  ?&gt;
+<i id="grammar-end-tag">end-tag:</i>
+   ?&gt;
 
-<i>text:</i>
-  arbitrary text not containing any of <i>start-tag</i> sequences
+<i id="grammar-text">text:</i>
+   arbitrary text not containing any of   <i><a href="#grammar-start-tag">start-tag</a></i>   sequences
 </pre>
 
 All of the sections in a script are treated as though they belonged to
@@ -249,7 +268,7 @@ VSlot, they become eligible for reclamation to release the memory
 they occupy. The engine may reclaim a VStore or HStore at any time
 between when it becomes eligible for reclamation and the end of the script execution.
 
-Before reclaiming an HStore that represents an [object](05-types.md#object-types),
+Before reclaiming an HStore that represents an [object](05-types.md#objects),
 the Engine should invoke the object's [destructor](14-classes.md#constructors) if one is defined.
 
 The Engine must reclaim each VSlot when the [storage duration](#storage-duration) of its
@@ -647,7 +666,7 @@ side of byRef assignment.
 ByRef assignment of non-scalar types works using the same mechanism as
 byRef assignment for scalar types. Nevertheless, it is worthwhile to
 describe a few examples to clarify the semantics of byRef assignment.
-Recall the [example using the `Point` class](#value-assignment-of-object-and-resource-types-to-a-local-variable):
+Recall the [example using the `Point` class](#value-assignment-of-objects-to-a-local-variable):
 
 `$a = new Point(1, 3);`
 
@@ -719,7 +738,7 @@ it can be destoyed too.
 
 ####Value Assignment of Array Types to Local Variables
 The semantics of value assignment of array types is different from value
-assignment of other types. Recall the `Point` class from [the examples](#value-assignment-of-object-and-resource-types-to-a-local-variable), and consider the following [value assignments](10-expressions.md#simple-assignment) and their abstract implementation:
+assignment of other types. Recall the `Point` class from [the examples](#value-assignment-of-objects-to-a-local-variable), and consider the following [value assignments](10-expressions.md#simple-assignment) and their abstract implementation:
 
 `$a = array(10, 'B' => new Point(1, 3));`
 
@@ -1231,7 +1250,7 @@ treated as byRef assignments.
 
 ###Cloning objects
 When an object instance is allocated, operator [`new`](10-expressions.md#the-new-operator) returns a handle
-that points to that object. As described [above](#value-assignment-of-object-and-resource-types-to-a-local-variable),
+that points to that object. As described [above](#value-assignment-of-objects-to-a-local-variable),
 value assignment of a handle to an object does not copy the object HStore itself. Instead, it creates a copy of the handle.
 The copying of the HStore itself is performed via [operator `clone`](10-expressions.md#the-clone-operator).
 
@@ -1314,7 +1333,7 @@ has its own scope separate from that of any function inside which that anonymous
 
 The variable scope of a parameter is the body of the function in which the parameter is declared.
 
-The scope of a []*named-label*](11-statements.md#labeled-statements) is the body of the function in
+The scope of a [*named-label*](11-statements.md#labeled-statements) is the body of the function in
 which the label is defined.
 
 The class scope of a [class member m](14-classes.md#class-members) that is declared in, or inherited by, a
@@ -1324,7 +1343,7 @@ The class scope of an [interface member m](14-classes.md#class-members) that is 
 an interface type I is the body of I.
 
 When a [trait](16-traits.md#general) is used by a class or an interface, the [trait's
-members](16-traits.md#trait-members) take on the class scope of a member of that class or
+members](16-traits.md#trait-declarations) take on the class scope of a member of that class or
 interface.
 
 ##Storage Duration
